@@ -7,8 +7,8 @@
 using namespace Rcpp;
 
 // LU_cpp
-Rcpp::List LU_cpp(SEXP X_, Eigen::VectorXd& z_, Eigen::VectorXd& icoef_, Eigen::ArrayXd& gsize_, Eigen::ArrayXd& pen_, Eigen::ArrayXd& lambdaseq_, bool user_lambdaseq_, int pathLength_, double lambdaMinRatio_, double pi_, int maxit_, double tol_, double inner_tol_, bool useStrongSet_, bool isSparse, bool isBigMatrix, bool verbose_);
-RcppExport SEXP _PUlasso_LU_cpp(SEXP X_SEXP, SEXP z_SEXP, SEXP icoef_SEXP, SEXP gsize_SEXP, SEXP pen_SEXP, SEXP lambdaseq_SEXP, SEXP user_lambdaseq_SEXP, SEXP pathLength_SEXP, SEXP lambdaMinRatio_SEXP, SEXP pi_SEXP, SEXP maxit_SEXP, SEXP tol_SEXP, SEXP inner_tol_SEXP, SEXP useStrongSet_SEXP, SEXP isSparseSEXP, SEXP isBigMatrixSEXP, SEXP verbose_SEXP) {
+Rcpp::List LU_cpp(SEXP X_, Eigen::VectorXd& z_, Eigen::VectorXd& icoef_, Eigen::ArrayXd& gsize_, Eigen::ArrayXd& pen_, Eigen::ArrayXd& lambdaseq_, bool user_lambdaseq_, int pathLength_, double lambdaMinRatio_, double pi_, int maxit_, double tol_, double inner_tol_, bool useStrongSet_, bool isSparse, bool verbose_);
+RcppExport SEXP _PUlasso_LU_cpp(SEXP X_SEXP, SEXP z_SEXP, SEXP icoef_SEXP, SEXP gsize_SEXP, SEXP pen_SEXP, SEXP lambdaseq_SEXP, SEXP user_lambdaseq_SEXP, SEXP pathLength_SEXP, SEXP lambdaMinRatio_SEXP, SEXP pi_SEXP, SEXP maxit_SEXP, SEXP tol_SEXP, SEXP inner_tol_SEXP, SEXP useStrongSet_SEXP, SEXP isSparseSEXP, SEXP verbose_SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -27,9 +27,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type inner_tol_(inner_tol_SEXP);
     Rcpp::traits::input_parameter< bool >::type useStrongSet_(useStrongSet_SEXP);
     Rcpp::traits::input_parameter< bool >::type isSparse(isSparseSEXP);
-    Rcpp::traits::input_parameter< bool >::type isBigMatrix(isBigMatrixSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose_(verbose_SEXP);
-    rcpp_result_gen = Rcpp::wrap(LU_cpp(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, isSparse, isBigMatrix, verbose_));
+    rcpp_result_gen = Rcpp::wrap(LU_cpp(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, isSparse, verbose_));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -79,7 +78,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_PUlasso_LU_cpp", (DL_FUNC) &_PUlasso_LU_cpp, 17},
+    {"_PUlasso_LU_cpp", (DL_FUNC) &_PUlasso_LU_cpp, 16},
     {"_PUlasso_cv_LU_cpp", (DL_FUNC) &_PUlasso_cv_LU_cpp, 19},
     {"_PUlasso_deviances_cpp", (DL_FUNC) &_PUlasso_deviances_cpp, 5},
     {NULL, NULL, 0}

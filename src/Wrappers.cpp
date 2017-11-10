@@ -18,27 +18,9 @@ Rcpp::List LU_cpp(SEXP X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
                        Eigen::ArrayXd & lambdaseq_,bool user_lambdaseq_,
                        int pathLength_,double lambdaMinRatio_, double pi_, 
                        int maxit_,double tol_,double inner_tol_,
-                       bool useStrongSet_, bool isSparse, bool isBigMatrix, bool verbose_)
+                       bool useStrongSet_, bool isSparse, bool verbose_)
 {
-  if(isBigMatrix)
-  {
-    XPtr<BigMatrix> xpMat(X_);
-    Eigen::Map<MatrixXd> X__ = Map<MatrixXd>((double *)xpMat->matrix(), xpMat->nrow(), xpMat->ncol()  );
-    LUfit<Eigen::MatrixXd> lu(X__,z_,icoef_,gsize_,pen_,
-                              lambdaseq_,user_lambdaseq_,pathLength_,
-                              lambdaMinRatio_,pi_,maxit_,tol_,
-                              inner_tol_,useStrongSet_,verbose_);
-    lu.LUfit_main();
-    return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
-                              Rcpp::Named("std_coef") = lu.getStdCoefficients(),
-                              Rcpp::Named("iters") = lu.getIters(),
-                              Rcpp::Named("nUpdates") = lu.getnUpdates(),
-                              Rcpp::Named("nullDev") = lu.getnullDev(),
-                              Rcpp::Named("deviance") = lu.getDeviances(),
-                              Rcpp::Named("lambda")=lu.getLambdaSequence(),
-                              
-  }
-  else {
+ 
     if(!isSparse)
     {
       Eigen::MatrixXd X__ = as<Eigen::MatrixXd>(X_);
@@ -84,7 +66,7 @@ Rcpp::List LU_cpp(SEXP X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
       }
       return R_NilValue;
     }
-  }
+  
  
 }
 
