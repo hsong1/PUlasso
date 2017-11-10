@@ -136,7 +136,7 @@ template <class TX>
 double evalDeviance(const TX & X, const VectorXd & z, const double pi, const VectorXd & coef)
 {
   int N = X.rows();
-  int p = X.cols();
+  int p = X.cols()+1;
   int nl = z.sum();
   int nu = N-nl;
   
@@ -147,7 +147,7 @@ double evalDeviance(const TX & X, const VectorXd & z, const double pi, const Vec
   
   for (int j=1; j<p; ++j)
   {
-    lpred+=X.block(0,j,N,1)*coef(j);
+    lpred+=X.block(0,(j-1),N,1)*coef(j);
   }
   
   VectorXd pred, logExpLpred, logExpPred,obslogL;
@@ -236,7 +236,7 @@ void LUfit<TX>::LUfit_main()
 //The explicit instantiation part
 template class LUfit<MatrixXd>;
 template class LUfit<SparseMatrix<double> >;
-template class groupLassoFit<Map<MatrixXd> >;
+template class LUfit<Map<MatrixXd> >;
 
 template double evalDeviance<MatrixXd>(const MatrixXd & X, const VectorXd & z, const double pi, const VectorXd & coef);
 template double evalDeviance<Map<MatrixXd> >(const Map<MatrixXd> & X, const VectorXd & z, const double pi, const VectorXd & coef);

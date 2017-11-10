@@ -5,7 +5,7 @@ cv_LUfit<TX>::cv_LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsiz
 {
     
     N = static_cast<int>(X.rows());
-    p = static_cast<int>(X.cols());
+    p = static_cast<int>(X.cols())+1;
     K = isUserLambdaseq?(static_cast<int>(lambdaseq.size())):(pathLength);
     nl = z.sum();
     nu = N-nl;
@@ -43,8 +43,8 @@ cv_LUfit<TX>::cv_LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsiz
     
     for (int ii=0;ii<nfolds;++ii)
     {
-        pX_ls[ii] = pX_l.block(Xl_sIdx(ii),0,cvSizel(ii),p);
-        pX_us[ii] = pX_u.block(Xu_sIdx(ii),0,cvSizeu(ii),p);
+        pX_ls[ii] = pX_l.block(Xl_sIdx(ii),0,cvSizel(ii),X.cols());
+        pX_us[ii] = pX_u.block(Xu_sIdx(ii),0,cvSizeu(ii),X.cols());
         
     };
     nullDev.resize(K);
@@ -171,7 +171,7 @@ void cv_LUfit<MatrixXd>::setup_t(MatrixXd & X_lu_t, VectorXd & z_lu_t, int j)
     int nl_t = nl - cvSizel(j);
     int nu_t = nu - cvSizeu(j);
     
-    X_lu_t.resize(nl_t+nu_t,p);
+    X_lu_t.resize(nl_t+nu_t,(p-1));
     z_lu_t.resize(nl_t+nu_t);
     X_lu_t.setZero();
     z_lu_t.setZero();
@@ -208,7 +208,7 @@ void cv_LUfit<MatrixXd>::setup_v(MatrixXd & X_lu_v, VectorXd & z_lu_v, int j)
     int nl_v = cvSizel(j);
     int nu_v = cvSizeu(j);
     
-    X_lu_v.resize(nl_v+nu_v,p);
+    X_lu_v.resize(nl_v+nu_v,(p-1));
     z_lu_v.resize(nl_v+nu_v);
     X_lu_v.setZero();
     z_lu_v.setZero();
@@ -230,7 +230,7 @@ void cv_LUfit<SparseMatrix<double> >::setup_t(SparseMatrix<double> & X_lu_t, Vec
     std::vector<Triplet<double> > tripletList;
     int nl_t = nl - cvSizel(j);
     int nu_t = nu - cvSizeu(j);
-    X_lu_t.resize(nl_t+nu_t,p);
+    X_lu_t.resize(nl_t+nu_t,(p-1));
     z_lu_t.resize(nl_t+nu_t);
     X_lu_t.setZero();
     z_lu_t.setZero();
@@ -280,7 +280,7 @@ void cv_LUfit<SparseMatrix<double> >::setup_v(SparseMatrix<double> & X_lu_v, Vec
     int nl_v = cvSizel(j);
     int nu_v = cvSizeu(j);
     
-    X_lu_v.resize(nl_v+nu_v,p);
+    X_lu_v.resize(nl_v+nu_v,(p-1));
     z_lu_v.resize(nl_v+nu_v);
     X_lu_v.setZero();
     z_lu_v.setZero();

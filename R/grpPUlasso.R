@@ -108,14 +108,15 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     pen <- c(0, penalty)
   }
   
-  X_lu_int = cbind(rep(1,N),X_lu)
+  #X_lu_int = cbind(rep(1,N),X_lu)
   
   
-  g<-LU_cpp(X_ = X_lu_int,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
+  g<-LU_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
            lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
           lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
            inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
            isSparse = is.sparse,verbose_ = verbose)
+  
   coef <-  g$coef
   colnames(coef) <-  paste("l",1:length(g$lambda),sep = "")
   rownames(coef) <- c("(Intercept)",colnames(X_lu))

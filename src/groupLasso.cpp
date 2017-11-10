@@ -9,13 +9,13 @@ groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, Arra
 
   checkDesignMatrix(X);
   N = static_cast<int>(X.rows());
-  p = static_cast<int>(X.cols());
+  p = static_cast<int>(X.cols())+1;
   J = static_cast<int>(gsize.size());
   K = isUserLambdaseq?(static_cast<int>(lambdaseq.size())):(pathLength);
   
   grpSIdx=ArrayXi::Zero(J);
   
-  for(int ii=1;ii<J;++ii)
+  for(int ii=2;ii<J;++ii)
   {
     grpSIdx(ii)=grpSIdx(ii-1)+gsize(ii-1);
   }
@@ -25,7 +25,7 @@ groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, Arra
   std_coefficients = MatrixXd::Zero(p, K);
   
   //Initialize Rinvs and Xcenter
-  Xcenter = VectorXd::Ones(p);
+  Xcenter = VectorXd::Ones(p-1);
   Rinvs.resize(J);
   if(verbose){Rcpp::Rcout<<"QR decompositions\n";}
   Rinvs_X();
@@ -80,9 +80,9 @@ VectorXd groupLassoFit<TX>::back_to_org(const VectorXd & beta)
   
   for(int j=1;j<J;++j)
   {
-    gamma.segment(grpSIdx(j),gsize(j))= Rinvs[j]*beta.segment(grpSIdx(j),gsize(j));
+    gamma.segment(grpSIdx(j)+1,gsize(j))= Rinvs[j]*beta.segment(grpSIdx(j)+1,gsize(j));
   }
-  gamma(0) = beta(0)-gamma.segment(1,p-1).adjoint()*Xcenter.segment(1,p-1);
+  gamma(0) = beta(0)-gamma.segment(1,p-1).adjoint()*Xcenter;
   
   return gamma;
 }
@@ -94,11 +94,11 @@ VectorXd groupLassoFit<TX>::org_to_std(const VectorXd & gamma)
   
   for(int j=1;j<J;++j)
   {
-    beta.segment(grpSIdx(j),gsize(j)) =
-      Rinvs[j].inverse()*gamma.segment(grpSIdx(j),gsize(j));
+    beta.segment(grpSIdx(j)+1,gsize(j)) =
+      Rinvs[j].inverse()*gamma.segment(grpSIdx(j)+1,gsize(j));
   }
   
-  beta(0)= gamma(0)+ gamma.segment(1,p-1).adjoint()*Xcenter.segment(1,p-1) ;
+  beta(0)= gamma(0)+ gamma.segment(1,p-1).adjoint()*Xcenter ;
   
   return beta;
 }
@@ -113,7 +113,7 @@ VectorXd groupLassoFit<TX>::linpred(const VectorXd & beta)
   for (int j=1; j<J; ++j)
   {
     int sind = grpSIdx(j);
-    lpred+=X.block(0,sind,N,gsize(j))*(Rinvs[j]*beta.segment(sind,gsize(j)));
+    lpred+=X.block(0,sind,N,gsize(j))*(Rinvs[j]*beta.segment(sind+1,gsize(j)));
   }
   
   lpred = lpred.array()-(lpred.mean()-beta(0));
@@ -168,7 +168,7 @@ bool groupLassoFit<TX>::checkKKT_j(int j, const VectorXd & resid, const ArrayXd 
   bool kkt_at_j(true);
   int sind = grpSIdx(j);
   //Map<TX> Xj(&X.coeffRef(0,sind),N,gsize(j));
-  Map<VectorXd> bj(&beta.coeffRef(sind),gsize(j));
+  Map<VectorXd> bj(&beta.coeffRef(sind+1),gsize(j));
   VectorXd bj_old = bj;
   VectorXd zj;
   //VectorXd sresid;
@@ -295,9 +295,8 @@ template <class TX>
 void groupLassoFit<TX>::Rinvs_X()
 {
   
-  for (int l=0;l<p;++l)
+  for (int l=0;l<(p-1);++l)
   {
-    
     Xcenter(l) = X.col(l).mean();
     Xcentered.col(l) = X.col(l).array()-Xcenter(l);
   }
@@ -368,7 +367,7 @@ template <class TX>
 void groupLassoFit<TX>::D_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k)
 {
   int sind = grpSIdx(j);
-  Map<VectorXd> bj(&beta.coeffRef(sind),gsize(j));
+  Map<VectorXd> bj(&beta.coeffRef(sind+1),gsize(j));
   VectorXd bj_old = bj;
   VectorXd zj;
   VectorXd update;
@@ -392,7 +391,7 @@ void groupLassoFit<SparseMatrix<double> >::Rinvs_X()
 {
   MatrixXd Xcentered;
   MatrixXd Xdl;
-  for (int l=0;l<p;++l)
+  for (int l=0;l<(p-1);++l)
   {
     Xdl = X.col(l);
     Xcenter(l) = Xdl.mean();
@@ -472,7 +471,7 @@ template <class TX>
 double groupLassoFit<TX>::S_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k)
 {
   int sind = grpSIdx(j);
-  Map<VectorXd> bj(&beta.coeffRef(sind),gsize(j));
+  Map<VectorXd> bj(&beta.coeffRef(sind+1),gsize(j));
   VectorXd bj_old = bj;
   VectorXd zj;
   VectorXd update;

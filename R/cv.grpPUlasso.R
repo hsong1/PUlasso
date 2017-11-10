@@ -124,9 +124,9 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
   X_l <- X_l[pl,]
   X_u <- X_u[pu,]
   X_lu <- rbind(X_l,X_u)
-  X_lu_int = cbind(rep(1,N),X_lu)
+  #X_lu_int = cbind(rep(1,N),X_lu)
   
-  g<-cv_LU_cpp(X_ = X_lu_int,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
+  g<-cv_LU_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
             lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
             lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
             inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
