@@ -21,6 +21,11 @@ LU_big_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_
 }
 
 #'@export
+cv_LU_big_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, nfolds_, nfits_, ncores_) {
+    .Call('_PUlasso_cv_LU_big_cpp', PACKAGE = 'PUlasso', X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, nfolds_, nfits_, ncores_)
+}
+
+#'@export
 deviances_cpp <- function(coefMat_, X_, z_, pi_, isSparse) {
     .Call('_PUlasso_deviances_cpp', PACKAGE = 'PUlasso', coefMat_, X_, z_, pi_, isSparse)
 }

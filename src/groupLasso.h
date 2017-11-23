@@ -66,7 +66,7 @@ protected:
     ArrayXi convFlag;
    
     //These constructors will be called only from derived classes
-    groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,
+    groupLassoFit(const TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,
                   ArrayXd & lambdaseq_,bool isUserLambdaseq_,  int pathLength_,
                   double lambdaMinRatio_,int maxit_, double tol_, bool verbose_);
     
@@ -81,6 +81,7 @@ protected:
     void blockCoordinateDescent(VectorXd & resid, const ArrayXd & lambda_k,double tol);
     void coordinateDescent_0(VectorXd & resid);
     void D_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k);
+    double B_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k);
     double S_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k);
     
     

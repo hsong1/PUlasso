@@ -83,7 +83,7 @@ protected:
     ArrayXd lambda_b(int k, const ArrayXd & pen);
     
 public:
-    LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,double pi_, int maxit_, double tol_, double inner_tol_,bool useStrongSet_,bool verbose_);
+    LUfit(const TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,double pi_, int maxit_, double tol_, double inner_tol_,bool useStrongSet_,bool verbose_);
     
     void LUfit_main();
     using groupLassoFit<TX>::computeLambdaSequence;
