@@ -1,3 +1,4 @@
+#'@method predict PUfit
 #'@export
 predict.PUfit <- function(object,newdata,lambda=NULL,type=c("response","link"),...){
   

@@ -12,50 +12,9 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 using namespace Eigen;
-//'@export
-// [[Rcpp::export]]
-NumericVector BigColSums2(SEXP X_) {
-  using Eigen::Map;
-  using Eigen::MatrixXd;
-  using Eigen::VectorXd;
-  
-  typedef Eigen::Matrix<char, Eigen::Dynamic, Eigen::Dynamic> MatrixXchar;
-  typedef Eigen::Matrix<short, Eigen::Dynamic, Eigen::Dynamic> MatrixXshort;
-  typedef Eigen::Matrix<char, Eigen::Dynamic, 1> Vectorchar;
-  typedef Eigen::Matrix<short, Eigen::Dynamic, 1> Vectorshort;
-  
-  XPtr<BigMatrix> xpMat(X_);
-  
-  unsigned int type = xpMat->matrix_type();
-  
-  if (type == 1) 
-  {
-    Map<MatrixXchar> bM = Map<MatrixXchar>((char *)xpMat->matrix(), xpMat->nrow(), xpMat->ncol()  );
-    Vectorchar colSums = bM.colwise().sum();
-    return wrap(colSums);
-  } else if (type == 2) 
-  {
-    Map<MatrixXshort> bM = Map<MatrixXshort>((short *)xpMat->matrix(), xpMat->nrow(), xpMat->ncol()  );
-    Vectorshort colSums = bM.colwise().sum();
-    return wrap(colSums);
-  } else if (type == 4) 
-  {
-    Map<MatrixXi> bM = Map<MatrixXi>((int *)xpMat->matrix(), xpMat->nrow(), xpMat->ncol()  );
-    VectorXi colSums = bM.colwise().sum();
-    return wrap(colSums);
-  } else if (type == 8) 
-  {
-    Map<MatrixXd> bM = Map<MatrixXd>((double *)xpMat->matrix(), xpMat->nrow(), xpMat->ncol()  );
-    VectorXd colSums = bM.colwise().sum();
-    return wrap(colSums);
-  } else {
-    throw Rcpp::exception("Undefined type for provided big.matrix");
-  }
-  
-}
 
 using Rcpp::as;
-//'@export
+
 //[[Rcpp::export]]
 Rcpp::List LU_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
                   Eigen::ArrayXd & gsize_,Eigen::ArrayXd & pen_,
@@ -114,7 +73,6 @@ Rcpp::List LU_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
   
 }
 
-//'@export
 //[[Rcpp::plugins(openmp)]]
 //[[Rcpp::export]]
 Rcpp::List cv_LU_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
@@ -187,8 +145,6 @@ Rcpp::List cv_LU_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
 }
 
 
-
-//'@export
 //[[Rcpp::export]]
 Rcpp::List LU_big_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
                       Eigen::ArrayXd & gsize_,Eigen::ArrayXd & pen_,
@@ -213,7 +169,6 @@ Rcpp::List LU_big_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
                             Rcpp::Named("deviance") = lu.getDeviances(),
                             Rcpp::Named("lambda")=lu.getLambdaSequence(),
                             Rcpp::Named("convFlag")=lu.getconvFlag());
-  // return Rcpp::List::create(Rcpp::Named("a")="a");
   }
 catch(const std::invalid_argument& e ){
   throw std::range_error(e.what());
@@ -223,8 +178,6 @@ return R_NilValue;
 }
 
 
-
-//'@export
 //[[Rcpp::export]]
 Rcpp::List cv_LU_big_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
                          Eigen::ArrayXd & gsize_,Eigen::ArrayXd & pen_,
@@ -265,7 +218,7 @@ Rcpp::List cv_LU_big_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoe
   
 }
 
-//'@export
+
 //[[Rcpp::export]]
 Eigen::MatrixXd deviances_cpp(Eigen::MatrixXd & coefMat_, SEXP & X_, Eigen::VectorXd & z_, double pi_, bool isSparse)
 {

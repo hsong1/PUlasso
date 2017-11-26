@@ -112,7 +112,7 @@ void cv_LUfit<TX>::cv_LUfit_main()
   std_coefMat_.setZero();
   convFlagMat_.setZero();
   
-  if(verbose){std::cout<<"Starting cross-validation"<<std::endl;}
+  if(verbose){Rcpp::Rcout<<"Starting cross-validation"<<std::endl;}
   
   int errCount = 0;
 #pragma omp parallel for shared(nullDev_,Deviances_,coefMat_) schedule(dynamic) reduction(+: errCount)
@@ -163,7 +163,7 @@ void cv_LUfit<TX>::cv_LUfit_main()
   convFlagMat = convFlagMat_;
   
   //Finally, we fit the full model
-  if(verbose){std::cout<<"Fitting full data"<<std::endl;}
+  if(verbose){Rcpp::Rcout<<"Fitting full data"<<std::endl;}
   
   lu_f.LUfit_main();
 };
@@ -194,7 +194,7 @@ void cv_LUfit<SparseMatrix<double> >::cv_LUfit_main()
   std_coefMat_.setZero();
   convFlagMat_.setZero();
   
-  if(verbose){std::cout<<"Starting cross-validation"<<std::endl;}
+  if(verbose){Rcpp::Rcout<<"Starting cross-validation"<<std::endl;}
   
   int errCount = 0;
 #pragma omp parallel for shared(nullDev_,Deviances_,coefMat_) schedule(dynamic) reduction(+: errCount)
@@ -244,7 +244,7 @@ void cv_LUfit<SparseMatrix<double> >::cv_LUfit_main()
   convFlagMat = convFlagMat_;
   
   //Finally, we fit the full model
-  if(verbose){std::cout<<"Fitting full data"<<std::endl;}
+  if(verbose){Rcpp::Rcout<<"Fitting full data"<<std::endl;}
   
   lu_f.LUfit_main();
 };

@@ -8,6 +8,7 @@ Maintainer: Hyebin Song <hsong56@wisc.edu>
 Description: Efficient algorithm for solving PU(positive and unlabelled) problem in low or high dimensial setting with lasso or group lasso penalty. The algorithm uses Maximization-Minorization and (block) coordinate descent. Sparse calculation and parallel computing via OpenMP are supported for the computational speed-up.
 License: GPL-2
 Imports: Rcpp (>= 0.12.8), RcppEigen (>= 0.3.2.9.0), methods
-Depends: R(>= 2.10), Matrix, bigmemory, BH
+Depends: R(>= 2.10), Matrix, bigmemory
 LinkingTo: Rcpp, RcppArmadillo, BH, bigmemory, RcppEigen
 RoxygenNote: 6.0.1
+Suggests: testthat

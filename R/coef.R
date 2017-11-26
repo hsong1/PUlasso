@@ -1,4 +1,5 @@
 #' @export
+#' @method coef PUfit
 coef.PUfit<-function(object,lambda=NULL,std.scale=F,...){
   fit = object
   if(std.scale){
@@ -35,8 +36,8 @@ coef.PUfit<-function(object,lambda=NULL,std.scale=F,...){
   return(coef)
 }
 
-
 #' @export
+#' @method coef cvPUfit
 coef.cvPUfit<-function(object,lambda=NULL,std.scale=F,...){
   fit = object$PUfit
   

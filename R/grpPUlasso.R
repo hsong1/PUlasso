@@ -5,6 +5,7 @@
 #'@importFrom Rcpp evalCpp
 #'@importFrom methods as
 #'@import Matrix
+#'@import bigmemory
 #'@useDynLib PUlasso
 #'@param X Input matrix; each row is an observation. Can be in matrix, sparse matrix or big matrix format.
 #'@param z Response vector representing whether an observation is labelled or unlabelled.

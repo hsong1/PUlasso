@@ -4,6 +4,7 @@
 #' 
 #'@importFrom Rcpp evalCpp
 #'@import Matrix
+#'@import bigmemory
 #'@importFrom stats sd
 #'@importFrom methods as
 #'@useDynLib PUlasso
