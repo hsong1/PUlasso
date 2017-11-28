@@ -4,7 +4,8 @@
 #' Main functions: grpPUlasso, cv.grpPUlasso, coef, predict
 #' @author Hyebin Song, \email{hsong@@stat.wisc.edu}
 #' @keywords PUlearning, Lasso, Group Lasso
-#' @examples 
+#' @examples
+#' vignette("PUlasso-vignette")  
 #' data("simulPU")
 #' fit<-grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
 #' cvfit<-cv.grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
