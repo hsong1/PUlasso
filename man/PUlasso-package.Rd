@@ -12,6 +12,7 @@ The package efficiently solves PU problem in low or high dimensional setting usi
 Main functions: grpPUlasso, cv.grpPUlasso, coef, predict
 }
 \examples{
+vignette("PUlasso-vignette")  
 data("simulPU")
 fit<-grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
 cvfit<-cv.grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
