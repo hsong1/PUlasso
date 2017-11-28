@@ -1,14 +1,20 @@
 Package: PUlasso
 Type: Package
-Title: PUlasso
+Title: High-dimensional Variable Selection with Presence-only Data
 Version: 1.0
 Date: 2017-07-05
-Author: Hyebin Song
-Maintainer: Hyebin Song <hsong56@wisc.edu>
-Description: Efficient algorithm for solving PU(positive and unlabelled) problem in low or high dimensial setting with lasso or group lasso penalty. The algorithm uses Maximization-Minorization and (block) coordinate descent. Sparse calculation and parallel computing via OpenMP are supported for the computational speed-up.
+Authors@R: person("Hyebin Song", "Developer", role = c("aut", "cre"),
+                     email = "hsong56@wisc.edu")
+Description: Efficient algorithm for solving PU(positive and unlabelled) problem in low or high dimensional setting with lasso or group lasso penalty. The algorithm uses Maximization-Minorization and (block) coordinate descent. Sparse calculation and parallel computing via OpenMP are supported for the computational speed-up.
 License: GPL-2
-Imports: Rcpp (>= 0.12.8), RcppEigen (>= 0.3.2.9.0), methods
+Imports: Rcpp (>= 0.12.8), methods
 Depends: R(>= 2.10), Matrix, bigmemory
 LinkingTo: Rcpp, RcppArmadillo, BH, bigmemory, RcppEigen
 RoxygenNote: 6.0.1
-Suggests: testthat
+Suggests: testthat,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+URL: https://arxiv.org/abs/1711.08129
+BugReports: https://github.com/hsong1/PUlasso/issues
+
