@@ -27,9 +27,8 @@
 #'@return deviance Deviance defined to be 2*(logLik_sat -logLik(model))
 #'@return iters number of iterations
 #'@examples
-#'data("simulatedPUdata")
-#'attach(simulatedPUdata)
-#'fit<-grpPUlasso(X=X,z=z,pi=truePrevalence)
+#'data("simulPU")
+#'fit<-grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
 #'@export
 #'
 grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),

@@ -5,11 +5,9 @@
 #' @author Hyebin Song, \email{hsong@@stat.wisc.edu}
 #' @keywords PUlearning, Lasso, Group Lasso
 #' @examples 
-#' data("simulatedPUdata")
-#' attach(simulatedPUdata)
-#' fit<-grpPUlasso(X=X,z=z,pi=truePrevalence)
-#' cvfit<-cv.grpPUlasso(X=X,z=z,pi=truePrevalence)
-#' coef(fit)
-#' predict(fit,newdata = head(X),type = "response")
-#' predict(cvfit,newdata = head(X), lambda=cvfit$lambda.1se,type = "response")
+#' data("simulPU")
+#' fit<-grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
+#' cvfit<-cv.grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
+#' coef(fit,lambda=fit$lambda[10])
+#' predict(cvfit,newdata = head(simulPU$X), lambda=cvfit$lambda.1se,type = "response")
 "_PACKAGE"

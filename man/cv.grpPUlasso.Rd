@@ -64,7 +64,6 @@ PUfit A fitted PUfit object for the full data
 Do a n-fold cross-validation for PUlasso.
 }
 \examples{
-data("simulatedPUdata")
-attach(simulatedPUdata)
-cvfit<-cv.grpPUlasso(X=X,z=z,pi=truePrevalence)
+data("simulPU")
+fit<-cv.grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
 }

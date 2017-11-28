@@ -12,13 +12,19 @@ The package efficiently solves PU problem in low or high dimensional setting usi
 Main functions: grpPUlasso, cv.grpPUlasso, coef, predict
 }
 \examples{
-data("simulatedPUdata")
-attach(simulatedPUdata)
-fit<-grpPUlasso(X=X,z=z,pi=truePrevalence)
-cvfit<-cv.grpPUlasso(X=X,z=z,pi=truePrevalence)
-coef(fit)
-predict(fit,newdata = head(X),type = "response")
-predict(cvfit,newdata = head(X), lambda=cvfit$lambda.1se,type = "response")
+data("simulPU")
+fit<-grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
+cvfit<-cv.grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
+coef(fit,lambda=fit$lambda[10])
+predict(cvfit,newdata = head(simulPU$X), lambda=cvfit$lambda.1se,type = "response")
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://arxiv.org/abs/1711.08129}
+  \item Report bugs at \url{https://github.com/hsong1/PUlasso/issues}
+}
+
 }
 \author{
 Hyebin Song, \email{hsong@stat.wisc.edu}

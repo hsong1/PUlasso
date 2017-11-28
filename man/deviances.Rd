@@ -22,8 +22,7 @@ deviances
 Calculate deviances at provided coefficients
 }
 \examples{
-data("simulatedPUdata")
-attach(simulatedPUdata)
-coef0<-replicate(2,runif(ncol(X)+1))
-deviances(X,z,pi=truePrevalence,coefMat = coef0)
+data("simulPU")
+coef0<-replicate(2,runif(ncol(simulPU$X)+1))
+deviances(simulPU$X,simulPU$z,pi=simulPU$truePY1,coefMat = coef0)
 }

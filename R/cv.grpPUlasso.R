@@ -33,9 +33,8 @@
 #'@return lambda.1se The largest value of lambda such that the error is within 1 standard error of the minimum cvm.
 #'@return PUfit A fitted PUfit object for the full data
 #'@examples
-#'data("simulatedPUdata")
-#'attach(simulatedPUdata)
-#'cvfit<-cv.grpPUlasso(X=X,z=z,pi=truePrevalence)
+#'data("simulPU")
+#'fit<-cv.grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
 #'@export
 #'
 cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),

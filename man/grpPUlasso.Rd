@@ -53,7 +53,6 @@ iters number of iterations
 Fit a model using PUlasso algorithm over a regularization path. The regularization path is computed at a grid of values for the regularization parameter lambda.
 }
 \examples{
-data("simulatedPUdata")
-attach(simulatedPUdata)
-fit<-grpPUlasso(X=X,z=z,pi=truePrevalence)
+data("simulPU")
+fit<-grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
 }
