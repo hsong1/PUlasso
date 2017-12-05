@@ -1,6 +1,6 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
-#include <iostream>
+// #include <iostream>
 #include <vector>
 #include <set>
 #include <RcppEigen.h>
@@ -19,11 +19,11 @@ using Rcpp::as;
 Rcpp::List LU_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
                   Eigen::ArrayXd & gsize_,Eigen::ArrayXd & pen_,
                   Eigen::ArrayXd & lambdaseq_,bool user_lambdaseq_,
-                  int pathLength_,double lambdaMinRatio_, double pi_, 
+                  int pathLength_,double lambdaMinRatio_, double pi_,
                   int maxit_,double tol_,double inner_tol_,
                   bool useStrongSet_, bool isSparse, bool verbose_)
 {
-  
+
   if(!isSparse)
   {
     Eigen::MatrixXd X__ = as<Eigen::MatrixXd>(X_);
@@ -69,8 +69,8 @@ Rcpp::List LU_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
     }
     return R_NilValue;
   }
-  
-  
+
+
 }
 
 //[[Rcpp::plugins(openmp)]]
@@ -111,7 +111,7 @@ Rcpp::List cv_LU_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
       throw std::range_error(e.what());
     }
     return R_NilValue;
-    
+
   } else
   {
     Eigen::SparseMatrix<double> X__ = as<Eigen::SparseMatrix<double> >(X_);
@@ -214,8 +214,8 @@ Rcpp::List cv_LU_big_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoe
     throw std::range_error(e.what());
   }
   return R_NilValue;
-  
-  
+
+
 }
 
 

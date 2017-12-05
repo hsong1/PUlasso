@@ -6,13 +6,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-#include <RcppEigen.h>
 #include <Rcpp.h>
-
-//#define Cmode
-#define Rmode
-
-#include <iostream>
 
 using namespace Eigen;
 
