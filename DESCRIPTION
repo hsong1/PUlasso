@@ -1,8 +1,8 @@
 Package: PUlasso
 Type: Package
-Title: High-dimensional Variable Selection with Presence-only Data
+Title: High-dimensional Variable Selection with Presence-Only Data
 Version: 1.0
-Date: 2017-07-05
+Date: 2017-12-08
 Authors@R: person("Hyebin Song", role = c("aut", "cre"),
                      email = "hsong56@wisc.edu")
 Description: Efficient algorithm for solving PU(positive and unlabelled) problem in low or high dimensional setting with lasso or group lasso penalty. The algorithm uses Maximization-Minorization and (block) coordinate descent. Sparse calculation and parallel computing via OpenMP are supported for the computational speed-up.
