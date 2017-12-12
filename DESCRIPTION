@@ -10,7 +10,7 @@ Description: Efficient algorithm for solving PU (Positive and Unlabelled) proble
 License: GPL-2
 Imports: Rcpp (>= 0.12.8), methods
 Depends: R(>= 2.10), Matrix, bigmemory
-LinkingTo: Rcpp, RcppArmadillo, BH, bigmemory, RcppEigen
+LinkingTo: Rcpp, BH, bigmemory, RcppEigen
 RoxygenNote: 6.0.1
 Suggests: testthat,
     knitr,

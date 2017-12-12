@@ -23,7 +23,7 @@
 #'@param verbose A logical value. if TRUE, the function prints out the fitting process.
 #'@param nfolds Number of cross-validation folds to be created.
 #'@param nfits Number of cross-validation models which will be fitted. Default is to fit the model for each of the cross-validation fold.
-#'@param nCores Number of OpenMP threads to be used for parallel computing.
+#'@param nCores Number of OpenMP threads to be used for parallel computing. Default is 1.
 #'@return cvm Mean cross-validation error
 #'@return cvsd Estimate of standard error of cvm
 #'@return cvcoef Coefficients for each of the fitted CV models
@@ -41,7 +41,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                       penalty=NULL,lambda=NULL, nlambda = 100,
                       lambdaMinRatio=ifelse(N < p, 0.05, 0.005),maxit=100000,
                       eps=1e-04,inner_eps = 1e-02,
-                      verbose = FALSE,nfolds=10,nfits=nfolds,nCores=0)
+                      verbose = FALSE,nfolds=10,nfits=nfolds,nCores=1)
 {
   if(is.big.matrix(X)){
     invPermute<-function(ind){
