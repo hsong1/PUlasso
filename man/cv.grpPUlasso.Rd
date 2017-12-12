@@ -8,7 +8,7 @@ cv.grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
   penalty = NULL, lambda = NULL, nlambda = 100,
   lambdaMinRatio = ifelse(N < p, 0.05, 0.005), maxit = 1e+05, eps = 1e-04,
   inner_eps = 0.01, verbose = FALSE, nfolds = 10, nfits = nfolds,
-  nCores = 0)
+  nCores = 1)
 }
 \arguments{
 \item{X}{Input matrix; each row is an observation. Can be in matrix, sparse matrix, or big matrix format.}
@@ -41,7 +41,7 @@ cv.grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
 
 \item{nfits}{Number of cross-validation models which will be fitted. Default is to fit the model for each of the cross-validation fold.}
 
-\item{nCores}{Number of OpenMP threads to be used for parallel computing.}
+\item{nCores}{Number of OpenMP threads to be used for parallel computing. If nCores=0, it is set to be the number of processors available. Default value is 1.}
 }
 \value{
 cvm Mean cross-validation error
