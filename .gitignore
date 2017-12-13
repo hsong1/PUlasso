@@ -2,8 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+inst/doc
+.DS_Store
 src/*.o
 src/*.so
 src/*.dll
-inst/doc
-PUlasso.Rproj
