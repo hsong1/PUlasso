@@ -42,9 +42,7 @@ deviances <-function(X,z,pi,coefMat)
   if(typeof(coefMat)=="double"){coefMat <- as.matrix(coefMat)}
   if(nrow(coefMat)!=(p+1)){stop("nrow(coefMat) must be the same as p+1")}
   
-  X_lu_int = cbind(rep(1,N),X_lu)
-  
-  dev<- deviances_cpp(X_ = X_lu_int,z_ = z_lu,pi_ = pi,coefMat_ = coefMat,isSparse = is.sparse)
+  dev<- deviances_cpp(X_ = X_lu,z_ = z_lu,pi_ = pi,coefMat_ = coefMat,isSparse = is.sparse)
   
   return(dev)
 }
