@@ -1,6 +1,6 @@
 #include "cv_LUfit.h"
 template <class TX>
-cv_LUfit<TX>::cv_LUfit(const TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,double inner_tol_,bool useStrongSet_,bool verbose_,int nfolds_,int nfits_,int ncores_)
+cv_LUfit<TX>::cv_LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,double inner_tol_,bool useStrongSet_,bool verbose_,int nfolds_,int nfits_,int ncores_)
   :X(X_),z(z_),icoef(icoef_), gsize(gsize_), pen(pen_),lambdaseq(lambdaseq_), isUserLambdaseq(isUserLambdaseq_),pathLength(pathLength_),lambdaMinRatio(lambdaMinRatio_),pi(pi_),maxit(maxit_), tol(tol_),inner_tol(inner_tol_),useStrongSet(useStrongSet_),verbose(verbose_),nfolds(nfolds_),nfits(nfits_),ncores(ncores_),lu_f(X_, z_, icoef_, gsize_,pen_,lambdaseq_,isUserLambdaseq_,pathLength_,lambdaMinRatio_,pi_,maxit_,tol_,inner_tol_,useStrongSet_,verbose_)
 {
   
@@ -9,9 +9,6 @@ cv_LUfit<TX>::cv_LUfit(const TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd 
   K = isUserLambdaseq?(static_cast<int>(lambdaseq.size())):(pathLength);
   nl = z.sum();
   nu = N-nl;
-  
-  //    TX pX_l = X.topRows(nl);
-  //    TX pX_u = X.bottomRows(nu);
   
   int rmdrl = nl % nfolds;
   int cvSizelt = nl / nfolds;
@@ -27,9 +24,6 @@ cv_LUfit<TX>::cv_LUfit(const TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd 
     cvSizeu(ii)=(ii<rmdru)?(cvSizeut+1):(cvSizeut);
   }
   
-  //    ArrayXi Xl_sIdx;
-  //    ArrayXi Xu_sIdx;
-  
   Xl_sIdx=ArrayXi::Zero(nfolds);
   Xu_sIdx=ArrayXi::Zero(nfolds);
   
@@ -38,15 +32,6 @@ cv_LUfit<TX>::cv_LUfit(const TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd 
     Xl_sIdx(ii)=Xl_sIdx(ii-1)+cvSizel(ii-1);
     Xu_sIdx(ii)=Xu_sIdx(ii-1)+cvSizeu(ii-1);
   }
-  //    pX_ls.resize(nfolds);
-  //    pX_us.resize(nfolds);
-  //    
-  //    for (int ii=0;ii<nfolds;++ii)
-  //    {
-  //        pX_ls[ii] = pX_l.block(Xl_sIdx(ii),0,cvSizel(ii),X.cols());
-  //        pX_us[ii] = pX_u.block(Xu_sIdx(ii),0,cvSizeu(ii),X.cols());
-  //        
-  //    };
   nullDev.resize(K);
   Deviances.resize(K,std::min(nfolds,nfits));
   
@@ -120,8 +105,6 @@ void cv_LUfit<TX>::cv_LUfit_main()
   {
     int x;
     x=omp_get_thread_num();
-    // #pragma omp critical
-    // {if(verbose){std::cout<<"cross validation for "<<j<<" using thread "<<x<<std::endl;};}
     try
     {
       MatrixXd X_lu_t, X_lu_v;
@@ -130,7 +113,6 @@ void cv_LUfit<TX>::cv_LUfit_main()
       d_setup_v(X_lu_v,z_lu_v,j);
       
       LUfit<MatrixXd> lu_t(X_lu_t, z_lu_t, icoef, gsize,pen,lambdaseq,true,pathLength,lambdaMinRatio,pi,maxit,tol,inner_tol,useStrongSet,false);
-      //LUfit<TX> lu_v(X_lu_v, z_lu_v, icoef, gsize,pen,lambdaseq,true,pathLength,lambdaMinRatio,pi,maxit,tol,inner_tol,useStrongSet,false);
       lu_t.LUfit_main();
       
       VectorXd coef(p),coef0(p);
@@ -143,9 +125,7 @@ void cv_LUfit<TX>::cv_LUfit_main()
   for (int k=0; k<coefMat_.cols();k++)
   {
     coef = coefMat_.middleRows(p*j,p).middleCols(k,1); //jth cv coef for kth lambda
-    //nullDev_(k) = lu_v.getnullDev();
     nullDev_(k) = evalDeviance(X_lu_v, z_lu_v, pi, coef0);
-    //Deviances_(k,j) = lu_v.deviance(coef);
     Deviances_(k,j) = evalDeviance(X_lu_v, z_lu_v, pi, coef);
   }
 }
@@ -262,16 +242,11 @@ void cv_LUfit<TX>::d_setup_t(MatrixXd & X_lu_t, VectorXd & z_lu_t, int j)
   int sind(0);
   int nrow(0);
   
-  //    TX pX_l = X.topRows(nl);
-  //    TX pX_u = X.bottomRows(nu);
-  
   for (int i=0;i<nfolds;++i)
   {
     if(i!=j)
     {
-      //nrow = pX_ls[i].rows();
       nrow = cvSizel(i);
-      //X_lu_t.middleRows(sind,nrow) = pX_ls[i];
       X_lu_t.middleRows(sind,nrow) = X.block(Xl_sIdx(i),0,cvSizel(i),X.cols());
       sind += nrow;
     }
@@ -280,17 +255,14 @@ void cv_LUfit<TX>::d_setup_t(MatrixXd & X_lu_t, VectorXd & z_lu_t, int j)
   {
     if(i!=j)
     {
-      //nrow = pX_us[i].rows();
       nrow = cvSizeu(i);
-      //X_lu_t.middleRows(sind,nrow) = pX_us[i];
       X_lu_t.middleRows(sind,nrow) = X.block(nl+Xu_sIdx(i),0,cvSizeu(i),X.cols());
       sind += nrow;
       
     }
   }
   z_lu_t.segment(0,nl_t)= VectorXd::Ones(nl_t);
-  z_lu_t.segment(nl_t,nu_t)= VectorXd::Zero(nu_t);    //X_lu_t.topRows(nl_t)= pX_l.block(Xl_sIdx(j),0,cvSizel(j),p);
-  //X_lu_t.bottomRows(nu_t) = pX_u.block(Xu_sIdx(j),0,cvSizeu(j),p);
+  z_lu_t.segment(nl_t,nu_t)= VectorXd::Zero(nu_t);
 }
 
 template<class TX>
@@ -305,12 +277,9 @@ void cv_LUfit<TX>::d_setup_v(MatrixXd & X_lu_v, VectorXd & z_lu_v, int j)
   z_lu_v.setZero();
   int sind(0);
   int nrow(0);
-  //nrow = pX_ls[j].rows();
   nrow = cvSizel(j);
-  //X_lu_v.middleRows(sind,nrow) = pX_ls[j];
   X_lu_v.middleRows(sind,nrow) = X.block(Xl_sIdx(j),0,cvSizel(j),X.cols());
   sind += nrow;
-  //nrow = pX_us[j].rows();
   nrow = cvSizeu(j);
   X_lu_v.middleRows(sind,nrow) = X.block(nl+Xu_sIdx(j),0,cvSizeu(j),X.cols());
   z_lu_v.segment(0,nl_v)= VectorXd::Ones(nl_v);
@@ -335,11 +304,9 @@ void cv_LUfit<TX>::s_setup_t(SparseMatrix<double> & X_lu_t, VectorXd & z_lu_t, i
   {
     if(i!=j)
     {
-      //nrow = pX_ls[i].rows();
       nrow = cvSizel(i);
       SparseMatrix<double> pX_ls;
       MatrixXd pX_lsd;
-      //            std::cout<<X.block(Xl_sIdx(i),0,cvSizel(i),X.cols());
       pX_lsd = X.block(Xl_sIdx(i),0,cvSizel(i),X.cols());
       pX_ls = pX_lsd.sparseView();
       for (int k = 0; k < X.cols(); ++k)
@@ -356,7 +323,6 @@ void cv_LUfit<TX>::s_setup_t(SparseMatrix<double> & X_lu_t, VectorXd & z_lu_t, i
   {
     if(i!=j)
     {
-      //nrow = pX_us[i].rows();
       nrow = cvSizeu(i);
       SparseMatrix<double> pX_us;
       MatrixXd pX_usd;
@@ -426,33 +392,7 @@ void cv_LUfit<TX>::s_setup_v(SparseMatrix<double> & X_lu_v, VectorXd & z_lu_v, i
   z_lu_v.segment(nl_v,nu_v)= VectorXd::Zero(nu_v);
 }
 
-//template<>
-//void cv_LUfit<MatrixXd>::checkDesignMatrix(const MatrixXd & X)
-//{
-//    for(int j=0;j<X.cols();j++)
-//    {
-//        if((X.col(j).array()==0).all()){throw std::invalid_argument("each column should have at least one non-zero element");}
-//    }
-//}
 
-//template<>
-//void cv_LUfit<Map<MatrixXd> >::checkDesignMatrix(const MatrixXd & X)
-//{
-//    for(int j=0;j<X.cols();j++)
-//    {
-//        if((X.col(j).array()==0).all()){throw std::invalid_argument("each column should have at least one non-zero element");}
-//    }
-//}
-
-//template<>
-//void cv_LUfit<SparseMatrix<double> >::checkDesignMatrix(const SparseMatrix<double> & X)
-//{
-//    for(int j=0;j<X.cols();j++)
-//    {
-//        if(X.col(j).nonZeros()==0){throw std::invalid_argument("each column should have at least one non-zero element");}
-//    }
-//}
-//
 
 //The explicit instantiation part
 template class cv_LUfit<MatrixXd>;

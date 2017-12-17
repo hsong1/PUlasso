@@ -7,12 +7,12 @@ template <class TX>
 class cv_LUfit
 {
 protected:
-  TX X;// with intercept, N by p matrix, p = 1+k1+..+k(J-1)
-  VectorXd z;// size N
-  VectorXd icoef;
-  ArrayXd gsize;// size J, first group = intercept
-  ArrayXd pen; // size J, first element = 0;
-  ArrayXd lambdaseq;//size K, default 100
+  TX & X;// with intercept, N by p matrix, p = 1+k1+..+k(J-1)
+  VectorXd & z;// size N
+  VectorXd & icoef;
+  ArrayXd & gsize;// size J, first group = intercept
+  ArrayXd & pen; // size J, first element = 0;
+  ArrayXd & lambdaseq;//size K, default 100
   bool isUserLambdaseq;
   int pathLength;
   double lambdaMinRatio;
@@ -43,12 +43,7 @@ protected:
   MatrixXi convFlagMat;
   
 public:
-  //TX X_lu_t;//Training Sets
-  //VectorXd z_lu_t;
-  //TX X_lu_v;//Validation Sets
-  //VectorXd z_lu_v;
-  
-  cv_LUfit(const TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,double pi_, int maxit_, double tol_, double inner_tol_,bool useStrongSet_,bool verbose_,int nfolds_,int nfits_,int ncores_);
+  cv_LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,double pi_, int maxit_, double tol_, double inner_tol_,bool useStrongSet_,bool verbose_,int nfolds_,int nfits_,int ncores_);
   void s_setup_t(SparseMatrix<double> & X_lu_t, VectorXd & z_lu_t, int j);
   void s_setup_v(SparseMatrix<double> & X_lu_v, VectorXd & z_lu_v, int j);
   void d_setup_t(MatrixXd & X_lu_t, VectorXd & z_lu_t, int j);
@@ -56,8 +51,6 @@ public:
   
   void cv_LUfit_main();
   LUfit<TX> getlu_f();
-  //    ArrayXi getpl();
-  //    ArrayXi getpu();
   MatrixXd getnullDev();
   MatrixXd getDeviances();
   MatrixXd getCoefMat();

@@ -1,7 +1,7 @@
 #include "LUfit.h"
 
 template <class TX>
-LUfit<TX>::LUfit(const TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,double inner_tol_,bool useStrongSet_,bool verbose_)
+LUfit<TX>::LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,double inner_tol_,bool useStrongSet_,bool verbose_)
   :groupLassoFit<TX>(X_,z_,icoef_,gsize_,pen_,lambdaseq_,isUserLambdaseq_,pathLength_,lambdaMinRatio_, maxit_,tol_,verbose_),t(0.25),lresp(z_),pi(pi_),nUpdate(0),inner_tol(inner_tol_),useStrongSet(useStrongSet_)
   {
     //Initialize LU parameters
@@ -44,9 +44,6 @@ LUfit<TX>::LUfit(const TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsiz
     //If useStrongSet=False, inactiveSet1 = {}, inactiveSet2=inactiveSet
     setupinactiveSets(0, resid, default_lambdaseq[0], lambdaseq, useStrongSet);
     
-#ifdef DEBUGGING_MODE
-    std::cout<<"bias: "<<bias<<std::endl;
-#endif
   };
 
 //Getters
@@ -80,7 +77,7 @@ void LUfit<TX>::setupinactiveSets(int k, const VectorXd & resid, double lam_max,
         if (lam_max > 0){cutoff = sqrt(pen(*it)) * (2 * lambdaseq(k) - lam_max);}
         else cutoff = 0;
       }
-    
+      
       sind = grpSIdx(*it);
       g[*it] = Rinvs[*it].adjoint()*((X.block(0,sind,N,gsize(*it)).adjoint()*resid))/N;
       gjnorm = g[*it].norm();
@@ -225,7 +222,7 @@ void LUfit<TX>::LUfit_main()
     iters(k) = iter;
     nUpdates(k)=nUpdate;
     Deviances(k) = evalDev(lpred_old,beta);
-
+    
     if(verbose&&converged_lam)
     {Rcpp::Rcout<<"converged at "<<iter<<"th iterations\n";}
     if(!converged_lam){convFlag(k)=1;}
