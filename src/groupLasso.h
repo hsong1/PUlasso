@@ -75,7 +75,6 @@ protected:
   void blockCoordinateDescent(VectorXd & resid, const ArrayXd & lambda_k,double tol);
   void coordinateDescent_0(VectorXd & resid);
   void D_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k);
-  double B_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k);
   double S_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k);
   
   
@@ -97,6 +96,7 @@ public:
   VectorXd org_to_std(const VectorXd & coef);
   ArrayXd computeLambdaSequence(const VectorXd & resp);
   void checkDesignMatrix(const TX & X);
+  void decenterX();
 };
 
 #endif /* groupLasso_h */

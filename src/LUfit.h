@@ -94,7 +94,7 @@ public:
   VectorXd getDeviances();
   using groupLassoFit<TX>::back_to_org;
   using groupLassoFit<TX>::org_to_std;
-  
+  using groupLassoFit<TX>::decenterX;
   
 };
 

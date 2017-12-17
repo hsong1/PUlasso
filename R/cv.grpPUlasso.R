@@ -43,6 +43,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                       eps=1e-04,inner_eps = 1e-02,
                       verbose = FALSE,nfolds=10,nfits=nfolds,nCores=1)
 {
+  if(is.null(dim(X))){stop("not a valid X")}
   if(is.big.matrix(X)){
     invPermute<-function(ind){
       rind<-c()
@@ -57,7 +58,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
       levels(group) <-1:length(unique(group))
       group <- as.numeric(levels(group)[group])
     }
-    
+    if(is.null(colnames(X))){colnames(X) <- paste("V",1:ncol(X),sep = "")}
      X_lu<-X
      rPermute=as.numeric(order(z,decreasing = T))
      cPermute=as.numeric(order(group))
@@ -100,9 +101,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     }
 
     if(!(class(X_lu)=="matrix"||class(X_lu)=="dgCMatrix"||class(X_lu)=="big.matrix")){stop("X must be a matrix, a sparse matrix or a big matrix")}
-    if(is.null(colnames(X_lu))){colnames(X_lu) <- paste("V",1:p,sep = "")}
-
-
+    
     if(is.null(initial_coef))
     {
       icoef <- rep(0,p+1)
@@ -205,10 +204,11 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
       levels(group) <-1:length(unique(group))
       group <- as.numeric(levels(group)[group])
     }
+    if(is.null(colnames(X))){colnames(X) <- paste("V",1:ncol(X),sep = "")}
     X_lu <- X[order(z,decreasing = T),order(group),drop=F]
     group <- group[order(group)]
     z_lu <- z[order(z,decreasing = T)]
-    if(typeof(X_lu)=="double"){X_lu <- Matrix::Matrix(X_lu)}
+    if(typeof(X_lu)!="double"){X_lu <- X_lu + 0.0} # Ensure type of X is double
     
     
     # Dimensions
@@ -249,10 +249,8 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     } else if (inherits(X_lu,"dgeMatrix")){
       X_lu = as.matrix(X_lu)
     }
-    if(!(class(X_lu)=="matrix"||class(X_lu)=="dgCMatrix")){stop("X must be a matrix, or a sparse matrix")}
-    if(is.null(colnames(X_lu))){colnames(X_lu) <- paste("V",1:p,sep = "")}
-    
-    
+    if(!(class(X_lu)=="matrix"||class(X_lu)=="dgCMatrix"||class(X_lu)=="big.matrix")){stop("X must be a matrix, a sparse matrix, or a big matrix")}
+
     if(is.null(initial_coef))
     {
       icoef <- rep(0,p+1)
@@ -282,11 +280,20 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     X_lu <- rbind(X_l,X_u)
     #X_lu_int = cbind(rep(1,N),X_lu)
     
-    g<-cv_LU_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
-                 lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
-                 lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
-                 inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                 isSparse = is.sparse,verbose_ = verbose,nfolds_ = nfolds,nfits_ = nfits, ncores_ = nCores)
+    if(!is.sparse){
+      g<-cv_LU_dense_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
+                   lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
+                   lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
+                   inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
+                   verbose_ = verbose,nfolds_ = nfolds,nfits_ = nfits, ncores_ = nCores)
+    }else{
+      g<-cv_LU_sparse_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
+                   lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
+                   lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
+                   inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
+                   verbose_ = verbose,nfolds_ = nfolds,nfits_ = nfits, ncores_ = nCores)
+    }
+   
     #
     # result <- structure(list(coef = coef, iters= g$iters,
     #                          nUpdates=g$nUpdates,

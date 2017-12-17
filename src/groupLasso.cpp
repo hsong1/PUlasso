@@ -247,6 +247,42 @@ void groupLassoFit<TX>::coordinateDescent_0(VectorXd & resid)
   
   //iter++;
 }
+//Do BCD in active set until active set coefficients converge or number of cycle reaches iter_max
+//Do coordinate descent in activeset
+template <typename TX>
+void groupLassoFit<TX>::blockCoordinateDescent(VectorXd & resid, const ArrayXd & lambda_k, const double tol)
+{
+  std::set<int>::const_iterator it;
+  VectorXd beta_old(p);
+  VectorXd diff(p);
+  double error(1);
+  converged_CD = false;
+  
+  while(!converged_CD&&iter<maxit)
+  {
+    beta_old = beta;
+    
+    if(activeSet.size()>0){
+      it = activeSet.begin();
+      while(it!=activeSet.end())
+      {
+        D_coordinateDescent_j(*it, resid, lambda_k);
+        ++it;
+      }//end of one cycle
+      
+      iter++;
+    }
+    diff = beta-beta_old;
+    error = diff.cwiseAbs().maxCoeff();
+    
+    if(error<tol)
+    {
+      converged_CD=true;
+    }
+    
+  }//end of while loop
+}
+
 template <typename TX>
 bool groupLassoFit<TX>::quadraticBCD(VectorXd & resid, const ArrayXd & lambda_k, const double tol)
 {
@@ -284,13 +320,9 @@ bool groupLassoFit<TX>::quadraticBCD(VectorXd & resid, const ArrayXd & lambda_k,
   return !violation;
 }
 
-
-///////////////////////////////////////////////////////
-//MatrixXd Specialization
-///////////////////////////////////////////////////////
 //Rinvs
-template <>
-void groupLassoFit<MatrixXd>::Rinvs_X()
+template <typename TX>
+void groupLassoFit<TX>::Rinvs_X()
 {
   
   for (int l=0;l<(p-1);++l)
@@ -324,42 +356,17 @@ void groupLassoFit<MatrixXd>::Rinvs_X()
   }
 }
 
-//Do BCD in active set until active set coefficients converge or number of cycle reaches iter_max
-//Do coordinate descent in activeset
-template <>
-void groupLassoFit<MatrixXd>::blockCoordinateDescent(VectorXd & resid, const ArrayXd & lambda_k, const double tol)
+template <class TX>
+void groupLassoFit<TX>::decenterX()
 {
-  std::set<int>::const_iterator it;
-  VectorXd beta_old(p);
-  VectorXd diff(p);
-  double error(1);
-  converged_CD = false;
-  
-  while(!converged_CD&&iter<maxit)
+  for (int l=0;l<(p-1);++l)
   {
-    beta_old = beta;
-    
-    if(activeSet.size()>0){
-      it = activeSet.begin();
-      while(it!=activeSet.end())
-      {
-        D_coordinateDescent_j(*it, resid, lambda_k);
-        ++it;
-      }//end of one cycle
-      
-      iter++;
-    }
-    diff = beta-beta_old;
-    error = diff.cwiseAbs().maxCoeff();
-    
-    if(error<tol)
-    {
-      converged_CD=true;
-    }
-    
-  }//end of while loop
+    X.col(l) = X.col(l).array()+Xcenter(l);
+  }
 }
-
+///////////////////////////////////////////////////////
+//MatrixXd Specialization
+///////////////////////////////////////////////////////
 
 template <class TX>
 void groupLassoFit<TX>::D_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k)
@@ -380,120 +387,6 @@ void groupLassoFit<TX>::D_coordinateDescent_j(int j, VectorXd & resid, const Arr
   //iter++;
 }
 
-///////////////////////////////////////////////////////
-//Specialization BigMatrix
-///////////////////////////////////////////////////////
-template <>
-void groupLassoFit<Map<MatrixXd> >::Rinvs_X()
-{
-  MatrixXd Xcentered;
-  MatrixXd Xdl;
-  for (int l=0;l<(p-1);++l)
-  {
-    Xdl = X.col(l);
-    Xcenter(l) = Xdl.mean();
-  }
-  
-  for(int j=1;j<J;++j)
-  {
-    int sind = grpSIdx(j);
-    Xcentered = X.block(0,sind,N,gsize(j));
-    
-    int k(0);
-    for(int l=sind; l<(sind+gsize(j)); ++l)
-    {
-      Xdl = X.col(l);
-      k = l-sind;
-      Xcentered.col(k) = Xdl.array()-Xcenter(l);
-    }
-    if(gsize(j)>1)
-    {
-      //Do QR decomposition
-      ColPivHouseholderQR<MatrixXd> qr(Xcentered);
-      
-      if(qr.rank() < gsize(j)){throw std::invalid_argument("X(j) does not have full column rank");}
-      
-      MatrixXd R = qr.matrixR().topLeftCorner(qr.rank(), qr.rank()).triangularView<Upper>();
-      MatrixXd P =qr.colsPermutation();
-      R=R*P.inverse()/std::sqrt(N);
-      
-      Rinvs.at(j)= R.inverse();// QtQ = NIn. R' = R/sqrt(N)
-    }
-    else
-    {
-      Rinvs.at(j) = Xcentered.adjoint()*Xcentered/N;
-      Rinvs.at(j) = Rinvs.at(j).array().sqrt().inverse();
-    }
-    
-  }
-  
-}
-//Do BCD in active set until active set coefficients converge or number of cycle reaches iter_max
-template <>
-void groupLassoFit<Map<MatrixXd> >::blockCoordinateDescent(VectorXd & resid, const ArrayXd & lambda_k, const double tol)
-{
-  std::set<int>::const_iterator it;
-  VectorXd beta_old(p);
-  VectorXd diff(p);
-  double error(1);
-  converged_CD = false;
-  double correction(0);
-  
-  while(!converged_CD&&iter<maxit)
-  {
-    beta_old = beta;
-    correction = 0;
-    if(activeSet.size()>0)
-    {
-      it = activeSet.begin();
-      while(it!=activeSet.end())
-      {
-        correction += B_coordinateDescent_j(*it, resid, lambda_k);
-        ++it;
-      }//end of one cycle
-      iter++;
-    }
-    
-    resid =resid.array()-correction;
-    diff = beta-beta_old;
-    error = diff.cwiseAbs().maxCoeff();
-    if(error<tol)
-      converged_CD=true;
-  }//end of while loop
-}
-
-
-
-template <class TX>
-double groupLassoFit<TX>::B_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k)
-{
-  int sind = grpSIdx(j);
-  Map<VectorXd> bj(&beta.coeffRef(sind+1),gsize(j));
-  VectorXd bj_old = bj;
-  VectorXd zj;
-  VectorXd update;
-  VectorXd sresid;
-  double zjnorm(0);
-  MatrixXd cj;
-  
-  //New version
-  g[j] = Rinvs[j].adjoint()*((X.block(0,sind,N,gsize(j)).adjoint()*resid))/N
-    + Rinvs[j].adjoint()*Xcenter.segment(sind,gsize(j))*resid.mean();
-    
-    zj = g[j] + bj_old;
-    zjnorm = zj.norm();
-    bj = ((zjnorm>lambda_k(j))?(1-(lambda_k(j)/zjnorm)):0)*zj;
-    cj = Rinvs[j]*(bj_old-bj);
-    update =X.block(0,sind,N,gsize(j))*cj;
-    
-    //    update =X.block(0,sind,N,gsize(j))*(Rinvs[j]*(bj-bj_old));
-    //    update = update.array()-update.mean();
-    resid += update;
-    cj = Xcenter.segment(sind,gsize(j)).adjoint()*cj;
-    //iter++;
-    
-    return cj.coeff(0,0);
-}
 ///////////////////////////////////////////////////////
 //Specialization Sparse
 ///////////////////////////////////////////////////////
@@ -542,6 +435,13 @@ void groupLassoFit<SparseMatrix<double> >::Rinvs_X()
   }
   
 }
+template <>
+void groupLassoFit<SparseMatrix<double> >::decenterX()
+{
+  //do nothing
+}
+
+
 //Do BCD in active set until active set coefficients converge or number of cycle reaches iter_max
 template <>
 void groupLassoFit<SparseMatrix<double> >::blockCoordinateDescent(VectorXd & resid, const ArrayXd & lambda_k, const double tol)
@@ -575,8 +475,6 @@ void groupLassoFit<SparseMatrix<double> >::blockCoordinateDescent(VectorXd & res
       converged_CD=true;
   }//end of while loop
 }
-
-
 
 template <class TX>
 double groupLassoFit<TX>::S_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k)

@@ -146,6 +146,7 @@ void cv_LUfit<TX>::cv_LUfit_main()
   if(verbose){Rcpp::Rcout<<"Fitting full data"<<std::endl;}
   
   lu_f.LUfit_main();
+  lu_f.decenterX();
 };
 
 template <>

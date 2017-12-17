@@ -18,17 +18,37 @@
 #'
 deviances <-function(X,z,pi,coefMat)
 {
-  X_lu <- X[order(z,decreasing = T),,drop=F]
-  z_lu <- z[order(z,decreasing = T)]
-  
-  if(typeof(X_lu)=="double"){X_lu <- Matrix(X_lu)}
-  
-  # Dimensions
-  N <- nrow(X_lu)
-  p <- ncol(X_lu)
-  nl <- sum(z_lu)
-  nu <- N-nl
-  
+  if(is.null(dim(X))){stop("not a valid X")}
+  if(is.big.matrix(X)){
+    invPermute<-function(ind){
+      rind<-c()
+      for(i in 1:length(ind)){
+        rind[ind[i]]=i
+      }
+      return(rind)
+    }
+    if(is.null(colnames(X))){colnames(X) <- paste("V",1:ncol(X),sep = "")}
+    X_lu<-X #X_lu and X point the same address
+    rPermute=as.numeric(order(z,decreasing = T))
+    mpermute(X_lu,order=rPermute)
+    irPermute=invPermute(rPermute)
+    z_lu <- z[order(z,decreasing = T)]
+    
+    if(!(class(X_lu)=="matrix"||class(X_lu)=="dgCMatrix"||class(X_lu)=="big.matrix")){
+      stop("X must be a matrix, a sparse matrix, or a big matrix")}
+    if(typeof(coefMat)=="double"){coefMat <- as.matrix(coefMat)}
+    if(nrow(coefMat)!=(ncol(X)+1)){stop("nrow(coefMat) must be the same as p+1")}
+    
+    dev<- deviances_big_cpp(X_ = X_lu@address,z_ = z_lu,pi_ = pi,coefMat_ = coefMat)
+    
+    #Permute back X matrix
+    mpermute(X_lu,order=as.numeric(irPermute))
+    return(c(dev))
+  }else{
+    if(is.null(colnames(X))){colnames(X) <- paste("V",1:ncol(X),sep = "")}
+    X_lu <- X[order(z,decreasing = T),,drop=F] # Copy of X, namely X_lu, is created
+    z_lu <- z[order(z,decreasing = T)]
+    if(typeof(X_lu)!="double"){X_lu <- X_lu + 0.0} # Ensure type of X is double 
   is.sparse = FALSE
   if (inherits(X_lu, "sparseMatrix")) {
     is.sparse = TRUE
@@ -38,11 +58,15 @@ deviances <-function(X,z,pi,coefMat)
     X_lu = as.matrix(X_lu)
   }
   if(!(class(X_lu)=="matrix"||class(X_lu)=="dgCMatrix")){stop("X must be a matrix, or a sparse matrix")}
-  if(is.null(colnames(X_lu))){colnames(X_lu) <- paste("V",1:p,sep = "")}
   if(typeof(coefMat)=="double"){coefMat <- as.matrix(coefMat)}
-  if(nrow(coefMat)!=(p+1)){stop("nrow(coefMat) must be the same as p+1")}
+  if(nrow(coefMat)!=(ncol(X)+1)){stop("nrow(coefMat) must be the same as p+1")}
   
-  dev<- deviances_cpp(X_ = X_lu,z_ = z_lu,pi_ = pi,coefMat_ = coefMat,isSparse = is.sparse)
-  
-  return(dev)
+  if(!is.sparse){
+    dev<- deviances_dense_cpp(X_ = X_lu,z_ = z_lu,pi_ = pi,coefMat_ = coefMat)
+  }else{
+    dev<- deviances_sparse_cpp(X_ = X_lu,z_ = z_lu,pi_ = pi,coefMat_ = coefMat)
+  }
+  return(c(dev))
+  }
 }
+
