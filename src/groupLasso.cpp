@@ -6,7 +6,6 @@ template <class TX>
 groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,int maxit_, double tol_, bool verbose_)
   :X(X_),y(y_), gsize(gsize_), pen(pen_),lambdaseq(lambdaseq_), isUserLambdaseq(isUserLambdaseq_),pathLength(pathLength_),lambdaMinRatio(lambdaMinRatio_),maxit(maxit_), tol(tol_),verbose(verbose_),iter(0),resid(y_),converged_CD(false),converged_KKT(false)
 {
-  
   checkDesignMatrix(X);
   N = static_cast<int>(X.rows());
   p = static_cast<int>(X.cols())+1;
@@ -364,6 +363,15 @@ void groupLassoFit<TX>::decenterX()
     X.col(l) = X.col(l).array()+Xcenter(l);
   }
 }
+
+template <class TX>
+void groupLassoFit<TX>::centerX()
+{
+  for (int l=0;l<(p-1);++l)
+  {
+    X.col(l) = X.col(l).array()-Xcenter(l);
+  }
+}
 ///////////////////////////////////////////////////////
 //MatrixXd Specialization
 ///////////////////////////////////////////////////////
@@ -441,7 +449,11 @@ void groupLassoFit<SparseMatrix<double> >::decenterX()
   //do nothing
 }
 
-
+template <>
+void groupLassoFit<SparseMatrix<double> >::centerX()
+{
+  //do nothing
+}
 //Do BCD in active set until active set coefficients converge or number of cycle reaches iter_max
 template <>
 void groupLassoFit<SparseMatrix<double> >::blockCoordinateDescent(VectorXd & resid, const ArrayXd & lambda_k, const double tol)

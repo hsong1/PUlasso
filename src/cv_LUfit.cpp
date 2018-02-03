@@ -1,9 +1,9 @@
 #include "cv_LUfit.h"
 template <class TX>
 cv_LUfit<TX>::cv_LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,double inner_tol_,bool useStrongSet_,bool verbose_,int nfolds_,int nfits_,int ncores_)
-  :X(X_),z(z_),icoef(icoef_), gsize(gsize_), pen(pen_),lambdaseq(lambdaseq_), isUserLambdaseq(isUserLambdaseq_),pathLength(pathLength_),lambdaMinRatio(lambdaMinRatio_),pi(pi_),maxit(maxit_), tol(tol_),inner_tol(inner_tol_),useStrongSet(useStrongSet_),verbose(verbose_),nfolds(nfolds_),nfits(nfits_),ncores(ncores_),lu_f(X_, z_, icoef_, gsize_,pen_,lambdaseq_,isUserLambdaseq_,pathLength_,lambdaMinRatio_,pi_,maxit_,tol_,inner_tol_,useStrongSet_,verbose_)
+  :X(X_),z(z_),icoef(icoef_), gsize(gsize_), pen(pen_),lambdaseq(lambdaseq_), isUserLambdaseq(isUserLambdaseq_),pathLength(pathLength_),lambdaMinRatio(lambdaMinRatio_),pi(pi_),maxit(maxit_), tol(tol_),inner_tol(inner_tol_),useStrongSet(useStrongSet_),verbose(verbose_),nfolds(nfolds_),nfits(nfits_),ncores(ncores_),
+   lu_f(X_, z_, icoef_, gsize_,pen_,lambdaseq_,isUserLambdaseq_,pathLength_,lambdaMinRatio_,pi_,maxit_,tol_,inner_tol_,useStrongSet_,verbose_)
 {
-  
   N = static_cast<int>(X.rows());
   p = static_cast<int>(X.cols())+1;
   K = isUserLambdaseq?(static_cast<int>(lambdaseq.size())):(pathLength);
@@ -74,7 +74,6 @@ MatrixXi cv_LUfit<TX>::getconvFlagMat(){return convFlagMat;}
 template <class TX>
 void cv_LUfit<TX>::cv_LUfit_main()
 {
-  
   lambdaseq = lu_f.getLambdaSequence();
   
   //setup Open-MP
@@ -98,8 +97,8 @@ void cv_LUfit<TX>::cv_LUfit_main()
   convFlagMat_.setZero();
   
   if(verbose){Rcpp::Rcout<<"Starting cross-validation"<<std::endl;}
-  
   int errCount = 0;
+  lu_f.decenterX(); //decenter X so that we can set up right training and test dataset
 #pragma omp parallel for shared(nullDev_,Deviances_,coefMat_) schedule(dynamic) reduction(+: errCount)
   for (int j=0;j<std::min(nfolds,nfits);++j)
   {
@@ -111,7 +110,7 @@ void cv_LUfit<TX>::cv_LUfit_main()
       VectorXd z_lu_t, z_lu_v;
       d_setup_t(X_lu_t,z_lu_t,j);
       d_setup_v(X_lu_v,z_lu_v,j);
-      
+    
       LUfit<MatrixXd> lu_t(X_lu_t, z_lu_t, icoef, gsize,pen,lambdaseq,true,pathLength,lambdaMinRatio,pi,maxit,tol,inner_tol,useStrongSet,false);
       lu_t.LUfit_main();
       
@@ -145,6 +144,7 @@ void cv_LUfit<TX>::cv_LUfit_main()
   //Finally, we fit the full model
   if(verbose){Rcpp::Rcout<<"Fitting full data"<<std::endl;}
   
+  lu_f.centerX();
   lu_f.LUfit_main();
   lu_f.decenterX();
 };

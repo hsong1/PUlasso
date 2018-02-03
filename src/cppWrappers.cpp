@@ -30,6 +30,7 @@ Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Ei
                                            inner_tol_,useStrongSet_,verbose_);
     lu.LUfit_main();
     lu.decenterX();
+    
     return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
                               Rcpp::Named("std_coef") = lu.getStdCoefficients(),
                               Rcpp::Named("iters") = lu.getIters(),
@@ -59,6 +60,7 @@ Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & z_,
                                            lambdaMinRatio_,pi_,maxit_,tol_,
                                            inner_tol_,useStrongSet_,verbose_);
     lu.LUfit_main();
+    
     return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
                               Rcpp::Named("std_coef") = lu.getStdCoefficients(),
                               Rcpp::Named("iters") = lu.getIters(),
@@ -85,12 +87,14 @@ Rcpp::List LU_big_cpp(SEXP & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
   try{
     XPtr<BigMatrix> xpMat(X_);
     Eigen::Map<MatrixXd> X__ = Map<MatrixXd>((double *)xpMat->matrix(), xpMat->nrow(), xpMat->ncol()  );
+    
     LUfit<Eigen::Map<MatrixXd> > lu(X__,z_,icoef_,gsize_,pen_,
                                     lambdaseq_,user_lambdaseq_,pathLength_,
                                     lambdaMinRatio_,pi_,maxit_,tol_,
                                     inner_tol_,useStrongSet_,verbose_);
     lu.LUfit_main();
     lu.decenterX();
+    
     return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
                               Rcpp::Named("std_coef") = lu.getStdCoefficients(),
                               Rcpp::Named("iters") = lu.getIters(),
@@ -116,13 +120,14 @@ Rcpp::List cv_LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_,
                            int maxit_,double tol_,double inner_tol_,
                            bool useStrongSet_, bool verbose_, int nfolds_, int nfits_,int ncores_)
 {
-  
-  try{
+   try{
+     
     cv_LUfit<Eigen::Map<Eigen::MatrixXd> > cvlu(X_,z_,icoef_,gsize_,pen_,
                                                 lambdaseq_,user_lambdaseq_,pathLength_,
                                                 lambdaMinRatio_,pi_,maxit_,tol_,
                                                 inner_tol_,useStrongSet_,verbose_,nfolds_,nfits_,ncores_);
     cvlu.cv_LUfit_main();
+    
     LUfit<Eigen::Map<MatrixXd> > lu_f = cvlu.getlu_f();
     return Rcpp::List::create(Rcpp::Named("nullDev")  = cvlu.getnullDev(),
                               Rcpp::Named("deviance") = cvlu.getDeviances(),

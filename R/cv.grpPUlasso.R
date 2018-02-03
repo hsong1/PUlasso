@@ -124,8 +124,8 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     # shuffle X_lu
     pl <- sample(1:nl)
     pu <- sample(1:nu)+nl
-    #pl = 1:nl
-    #pu = (1:nu)+nl
+    # pl = 1:nl
+    # pu = (1:nu)+nl
     rPermute2 = c(pl,pu)
     mpermute(X_lu,order=as.numeric(rPermute2))
     irPermute2=invPermute(rPermute2)
@@ -273,13 +273,13 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     # shuffle X_lu
     pl <- sample(1:nl)
     pu <- sample(1:nu)
+    # pl=1:nl
+    # pu=1:nu
     X_l <- X_lu[1:nl,]
     X_u <- X_lu[(nl+1):(nl+nu),]
     X_l <- X_l[pl,]
     X_u <- X_u[pu,]
     X_lu <- rbind(X_l,X_u)
-    #X_lu_int = cbind(rep(1,N),X_lu)
-    
     if(!is.sparse){
       g<-cv_LU_dense_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                    lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,

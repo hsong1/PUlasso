@@ -97,6 +97,7 @@ public:
   ArrayXd computeLambdaSequence(const VectorXd & resp);
   void checkDesignMatrix(const TX & X);
   void decenterX();
+  void centerX();
 };
 
 #endif /* groupLasso_h */
