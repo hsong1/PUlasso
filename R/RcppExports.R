@@ -9,10 +9,6 @@ LU_sparse_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdas
     .Call('_PUlasso_LU_sparse_cpp', PACKAGE = 'PUlasso', X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_)
 }
 
-LU_big_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_) {
-    .Call('_PUlasso_LU_big_cpp', PACKAGE = 'PUlasso', X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_)
-}
-
 cv_LU_dense_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, nfolds_, nfits_, ncores_) {
     .Call('_PUlasso_cv_LU_dense_cpp', PACKAGE = 'PUlasso', X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, nfolds_, nfits_, ncores_)
 }
@@ -21,19 +17,11 @@ cv_LU_sparse_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lamb
     .Call('_PUlasso_cv_LU_sparse_cpp', PACKAGE = 'PUlasso', X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, nfolds_, nfits_, ncores_)
 }
 
-cv_LU_big_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, nfolds_, nfits_, ncores_) {
-    .Call('_PUlasso_cv_LU_big_cpp', PACKAGE = 'PUlasso', X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, nfolds_, nfits_, ncores_)
-}
-
 deviances_dense_cpp <- function(coefMat_, X_, z_, pi_) {
     .Call('_PUlasso_deviances_dense_cpp', PACKAGE = 'PUlasso', coefMat_, X_, z_, pi_)
 }
 
 deviances_sparse_cpp <- function(coefMat_, X_, z_, pi_) {
     .Call('_PUlasso_deviances_sparse_cpp', PACKAGE = 'PUlasso', coefMat_, X_, z_, pi_)
-}
-
-deviances_big_cpp <- function(coefMat_, X_, z_, pi_) {
-    .Call('_PUlasso_deviances_big_cpp', PACKAGE = 'PUlasso', coefMat_, X_, z_, pi_)
 }
 

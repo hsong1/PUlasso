@@ -13,6 +13,7 @@ vignette: >
 
 ```{r,include=F}
 library(PUlasso)
+library(Matrix)
 ```
 
 # Introduction
@@ -105,13 +106,11 @@ All members in the group are either all included or not included. For example, w
 coef(fit.grp,fit.grp$lambda[12:15])
 ```
 
-### Fitting with a sparse matrix or a big matrix
+### Fitting with a sparse matrix
 
 PUlasso can exploit a sparsity in an input matrix for a more efficient calculation. If `dgCMatrix` type of the input matrix is provided, PUlasso automatically performs a sparse calculation. 
 
-The package also allows for users to use memory-mapped files for the data larger than memory size. The object `big.matrix` in the __bigmemory__ package needs to be provided as an input matrix $X$ for this functionality. There are in fact two big.matix types which are handled in different ways; a standard big.matrix only uses available RAM, whilst a file-backed big.matrix uses additional hard drive space, and thus it may exceed available RAM. 
-
-For a simple demonstration, here we create `dgCMatrix` and standard type `big.matrix` objects based on $X$. First we create a sparse matrix sparseX by imposing 0 on 95% of the entries of $X$.
+For a simple demonstration, here we create `dgCMatrix` objects based on $X$. First we create a sparse matrix sparseX by imposing 0 on 95% of the entries of $X$.
 
 ```{r}
 sparseX <- simulPU$X
@@ -119,20 +118,12 @@ sparseX[sample(1:length(simulPU$X),size = length(simulPU$X)*0.95)]<-0
 sparseX<-Matrix(sparseX)
 class(sparseX)
 ```
-a simple `big matrix` object can be created using `as.big.matrix` function. More meaningful example using `big.matrix` object would involve reading data whose size exceeds available RAM using and creating file-backed `big.matrix` object through `read.big.matrix` function in the package __bigmemory__, and then use such object as an input for `grpPUlasso` function. Please see [https://cran.r-project.org/web/packages/bigmemory/index.html](bigmemory) for more detailed discussion.
-
-```{r}
-bigX <- as.big.matrix(simulPU$X)
-class(bigX)
-```
 
 Those input matrices can be used in the same way. For example,
 
 ```{r}
 spfit<-grpPUlasso(sparseX,simulPU$z,simulPU$truePY1)
-bigfit<-grpPUlasso(bigX,simulPU$z,simulPU$truePY1)
 newx = matrix(rnorm(10),2,5)
 predict(spfit,newdata = newx,lambda = spfit$lambda[10])
-predict(bigfit,newdata = newx,lambda = spfit$lambda[10])
 ```
  

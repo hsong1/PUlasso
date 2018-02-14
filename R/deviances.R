@@ -19,32 +19,6 @@
 deviances <-function(X,z,pi,coefMat)
 {
   if(is.null(dim(X))){stop("not a valid X")}
-  if(is.big.matrix(X)){
-    invPermute<-function(ind){
-      rind<-c()
-      for(i in 1:length(ind)){
-        rind[ind[i]]=i
-      }
-      return(rind)
-    }
-    if(is.null(colnames(X))){colnames(X) <- paste("V",1:ncol(X),sep = "")}
-    X_lu<-X #X_lu and X point the same address
-    rPermute=as.numeric(order(z,decreasing = T))
-    mpermute(X_lu,order=rPermute)
-    irPermute=invPermute(rPermute)
-    z_lu <- z[order(z,decreasing = T)]
-    
-    if(!(class(X_lu)=="matrix"||class(X_lu)=="dgCMatrix"||class(X_lu)=="big.matrix")){
-      stop("X must be a matrix, a sparse matrix, or a big matrix")}
-    if(typeof(coefMat)=="double"){coefMat <- as.matrix(coefMat)}
-    if(nrow(coefMat)!=(ncol(X)+1)){stop("nrow(coefMat) must be the same as p+1")}
-    
-    dev<- deviances_big_cpp(X_ = X_lu@address,z_ = z_lu,pi_ = pi,coefMat_ = coefMat)
-    
-    #Permute back X matrix
-    mpermute(X_lu,order=as.numeric(irPermute))
-    return(c(dev))
-  }else{
     if(is.null(colnames(X))){colnames(X) <- paste("V",1:ncol(X),sep = "")}
     X_lu <- X[order(z,decreasing = T),,drop=F] # Copy of X, namely X_lu, is created
     z_lu <- z[order(z,decreasing = T)]
@@ -67,6 +41,6 @@ deviances <-function(X,z,pi,coefMat)
     dev<- deviances_sparse_cpp(X_ = X_lu,z_ = z_lu,pi_ = pi,coefMat_ = coefMat)
   }
   return(c(dev))
-  }
+  
 }
 

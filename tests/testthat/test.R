@@ -87,28 +87,10 @@ test_that("Input : Sparse matrix",{
 })
 
 ##################################################################################################
-context("Input : Big matrix")
-bmX = as.big.matrix(X)
-before=bmX[,]
-gnb<-grpPUlasso(X=bmX,z=z,pi=truePrevalence,nlambda = 5,lambdaMinRatio = 1e-3, eps=1e-06)
-after=bmX[,]
-before.cv=bmX[,]
-cv.gnb = cv.grpPUlasso(X=bmX,z=z,pi=truePrevalence,nlambda = 5,lambdaMinRatio = 1e-3, eps=1e-06)
-after.cv=bmX[,]
-
-test_that("Input : Big matrix",{
-  expect_lt(max(abs(gn$coef-gnb$coef)),1e-4)
-  expect_lt(max(cv.gnb$PUfit$coef-gnb$coef),1e-4)
-  expect_equal(max(abs(after-before)),0)
-  expect_equal(max(abs(after.cv-before.cv)),0)
-
-})
-
 ##################################################################################################
 context("Deviance")
 test_that("Deviance",{
   expect_lt(max(gn$deviance-deviances(X=X,z=z,pi=truePrevalence,coefMat = gn$coef)),1e-5)
   expect_lt(max(spgn$deviance-deviances(X=spX,z=z,pi=truePrevalence,coefMat = spgn$coef)),1e-5)
-  expect_lt(max(gnb$deviance-deviances(X=bmX,z=z,pi=truePrevalence,coefMat = gn$coef)),1e-5)
 })
 ##################################################################################################

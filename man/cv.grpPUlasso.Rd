@@ -11,7 +11,7 @@ cv.grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
   nCores = 1)
 }
 \arguments{
-\item{X}{Input matrix; each row is an observation. Can be in matrix, sparse matrix, or big matrix format.}
+\item{X}{Input matrix; each row is an observation. Can be a matrix or a sparse matrix.}
 
 \item{z}{Response vector representing whether an observation is labelled or unlabelled.}
 
