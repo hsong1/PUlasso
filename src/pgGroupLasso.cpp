@@ -299,6 +299,33 @@ VectorXd pgGroupLassoFit<TX>::gradient(const VectorXd & beta, const ArrayXi & ri
 }
 
 template <class TX>
+VectorXd pgGroupLassoFit<TX>::subgradient(VectorXd & gradient, VectorXd & beta, ArrayXd lambdaj){
+    double gjnorm, bjnorm;
+    VectorXd subgrad(gradient);
+    subgrad.setConstant(1);
+    subgrad(0) = gradient(0);
+    for (int j=1;j<J;j++){
+        Map<VectorXd> gj(&gradient.coeffRef(grpSIdx(j)+1),gsize(j));
+        Map<VectorXd> bj(&beta.coeffRef(grpSIdx(j)+1),gsize(j));
+        bjnorm=bj.norm();
+        gjnorm=gj.norm();
+        if(bjnorm>0){
+            if(lambdaj(j)>1e-10&&gjnorm>1e-10){
+                subgrad.segment(grpSIdx(j)+1,gsize(j))=(1-(lambdaj(j)/gjnorm))*gj;
+            }else{
+                subgrad.segment(grpSIdx(j)+1,gsize(j))=gj;
+            }
+        }else{
+            subgrad.segment(grpSIdx(j)+1,gsize(j))= ((gjnorm>lambdaj(j))?(1-(lambdaj(j)/gjnorm)):0)*gj;
+        }
+    }
+    return subgrad;
+}
+
+
+
+
+template <class TX>
 VectorXd pgGroupLassoFit<TX>::q(int i){
     VectorXd q1i(p), qi(X.row(i));
     q1i<<1,qi;

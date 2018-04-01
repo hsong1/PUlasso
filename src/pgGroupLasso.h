@@ -11,7 +11,6 @@
 
 using namespace Eigen;
 using namespace std;
-using namespace Rcpp;
 template <class TX>
 class pgGroupLassoFit
 {
@@ -64,6 +63,7 @@ public:
     VectorXd linpred(bool intercept, const VectorXd & beta, const ArrayXi & ridx);
     double evalObjective(const VectorXd & beta, const ArrayXd & lambda);
     VectorXd gradient(const VectorXd & beta, const ArrayXi & ridx);
+    VectorXd subgradient(VectorXd & gradient, VectorXd & beta, ArrayXd lambdaj);
     VectorXd SoftThreshold(const VectorXd & beta, const ArrayXd & thresh);
     VectorXd q(int i);
 //public:

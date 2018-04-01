@@ -4,8 +4,6 @@
 
 using namespace Eigen;
 using namespace std;
-using namespace Rcpp;
-
 template <class TX>
 class LUfit : public groupLassoFit<TX>
 {
@@ -34,6 +32,7 @@ protected:
     using groupLassoFit<TX>::std_coefficients; //size p*k
     using groupLassoFit<TX>::Xcenter; 
     using groupLassoFit<TX>::iter;// current iterations
+    //using groupLassoFit<TX>::intercept_set;
     using groupLassoFit<TX>::activeSet;
     using groupLassoFit<TX>::inactiveSet;
     using groupLassoFit<TX>::inactiveSet1;
@@ -73,7 +72,7 @@ protected:
     VectorXd Deviances;
     double nullDev;
     VectorXd fVals;//function values
-    MatrixXd g_grads;//generalized gradients
+    MatrixXd subgrads;//generalized gradients
     MatrixXd fVals_all;//all function values
     
     //private functions
@@ -102,7 +101,7 @@ public:
     double getnullDev();
     VectorXd getDeviances();
     VectorXd getfVals();
-    MatrixXd getGeneralizedGradients();
+    MatrixXd getSubGradients();
     MatrixXd getfVals_all();
     using groupLassoFit<TX>::back_to_org;
     using groupLassoFit<TX>::org_to_std;

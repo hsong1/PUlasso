@@ -11,7 +11,7 @@ pgGroupLassoFit<TX>(X_,z_,pi_,icoef_,gsize_,pen_,lambdaseq_,isUserLambdaseq_,pat
     nUpdates = ArrayXi::Zero(K);
     Deviances = VectorXd::Zero(K);
     fVals = VectorXd::Zero(K);
-    g_grads = MatrixXd::Zero(p,K);
+    subgrads = MatrixXd::Zero(p,K);
     fVals_all = MatrixXd::Zero(maxit+1,K);
     
     VectorXd lpred0(N),beta0(p);
@@ -47,7 +47,7 @@ VectorXd pgLUfit<TX>::getfVals(){return fVals;}
 template <typename TX>
 MatrixXd pgLUfit<TX>::getfVals_all(){return fVals_all;}
 template <typename TX>
-MatrixXd pgLUfit<TX>::getGeneralizedGradients(){return g_grads;}
+MatrixXd pgLUfit<TX>::getSubGradients(){return subgrads;}
 //calculate deviance using precalculated lpred
 template <class TX>
 double pgLUfit<TX>::evalDev(const VectorXd & lpred)
@@ -69,11 +69,12 @@ void pgLUfit<TX>::pgLUfit_main(){
     std::function<VectorXd(VectorXd,const ArrayXi &)> g=std::bind(&pgGroupLassoFit<TX>::gradient,this,_1,_2);
     std::function<VectorXd(int)> q = std::bind(&pgGroupLassoFit<TX>::q,this,_1);
     std::function<VectorXd(const VectorXd &, const ArrayXd &)> ST = std::bind(&pgGroupLassoFit<TX>::SoftThreshold,this,_1,_2);
+    std::function<VectorXd(VectorXd &, VectorXd &, ArrayXd &)> subgradient = std::bind(&pgGroupLassoFit<TX>::subgradient,this,_1,_2,_3);
     ArrayXd lambda_k(K);
     for(int k=0; k<K; k++)
     {
     lambda_k = lambdaseq(k)* pen;
-        VectorXd g_grad_k(p);
+        VectorXd subgrad_k(p);
     double fVal_k;
     VectorXd fVal_all_k;
     int method_int(0);
@@ -92,20 +93,20 @@ void pgLUfit<TX>::pgLUfit_main(){
         
         switch(method_int){
             case 1:
-                std::tie(beta,fVal_k,g_grad_k,fVal_all_k,iter) = GD(f,g,N,q,beta,stepSize,maxit,ST,lambda_k,tol,trace);
+                std::tie(beta,fVal_k,subgrad_k,fVal_all_k,iter) = GD(f,g,N,q,beta,stepSize,maxit,ST,subgradient,lambda_k,tol,trace);
                 break;
             case 2:
                 for(int i=0;i<maxit;i++){stepSizeSeq(i) = stepSize/(1.0+stepSize*lambdaseq(k)*i);}
-                std::tie(beta,fVal_k,g_grad_k,fVal_all_k,iter) = SGD(f,g,dist,q,beta,stepSizeSeq,batchSize,maxit,ST,lambda_k,tol,trace);
+                std::tie(beta,fVal_k,subgrad_k,fVal_all_k,iter) = SGD(f,g,dist,q,beta,stepSizeSeq,batchSize,maxit,ST,subgradient,lambda_k,tol,trace);
                 break;
             case 3:
-                 std::tie(beta,fVal_k,g_grad_k,fVal_all_k,iter) = SVRG(f,g,dist,q,beta,stepSize,N,batchSize,maxit,ST,lambda_k,tol,trace);
+                 std::tie(beta,fVal_k,subgrad_k,fVal_all_k,iter) = SVRG(f,g,dist,q,beta,stepSize,N,batchSize,maxit,ST,subgradient,lambda_k,tol,trace);
                 break;
             case 4:
-                std::tie(beta,fVal_k,g_grad_k,fVal_all_k,iter)= SAG(f,g,dist,q,beta,stepSize,batchSize,maxit,ST,lambda_k,true,tol,trace);
+                std::tie(beta,fVal_k,subgrad_k,fVal_all_k,iter)= SAG(f,g,dist,q,beta,stepSize,batchSize,maxit,ST,subgradient,lambda_k,true,tol,trace);
                 break;
             default:
-                std::tie(beta,fVal_k,g_grad_k,fVal_all_k,iter) = GD(f,g,N,q,beta,stepSize,maxit,ST,lambda_k,tol,trace);
+                std::tie(beta,fVal_k,subgrad_k,fVal_all_k,iter) = GD(f,g,N,q,beta,stepSize,maxit,ST,subgradient,lambda_k,tol,trace);
                 break;}
         
         Map<MatrixXd> coefficients_k(&coefficients.coeffRef(0, k),p,1);
@@ -121,9 +122,9 @@ void pgLUfit<TX>::pgLUfit_main(){
             penVal+=lambda_k(j)*bj.lpNorm<2>();
         }
         Deviances(k) = (fVal_k-N*penVal)*2;
-        g_grads.col(k)=g_grad_k;
+        subgrads.col(k)=subgrad_k;
         fVals_all.col(k)=fVal_all_k;
-        if(g_grad_k.array().abs().maxCoeff()<tol){convFlag(k)=1;}
+        if(subgrad_k.array().abs().maxCoeff()<tol){convFlag(k)=1;}
         
     }
 }

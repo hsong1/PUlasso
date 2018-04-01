@@ -34,9 +34,10 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                 penalty=NULL,lambda=NULL, nlambda = 100, 
                 lambdaMinRatio=ifelse(N < p, 0.05, 0.005),maxit=100000,
                 eps=1e-04,inner_eps = 1e-02, 
-                verbose = FALSE)
+                verbose = FALSE, trace=FALSE)
 {
   if(is.null(dim(X))){stop("not a valid X")}
+    group0 <- group
     if(!is.numeric(group)){
       group <-  as.factor(group)
       levels(group) <-1:length(unique(group))
@@ -44,6 +45,7 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     }
     if(is.null(colnames(X))){colnames(X) <- paste("V",1:ncol(X),sep = "")}
     X_lu <- X[order(z,decreasing = T),order(group),drop=F] # Copy of X, namely X_lu, is created
+    group0 <- group0[order(group)]
     group <- group[order(group)]
     z_lu <- z[order(z,decreasing = T)]
     if(typeof(X_lu)!="double"){X_lu <- X_lu + 0.0} # Ensure type of X is double 
@@ -114,13 +116,13 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                 lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
                 lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                 inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                verbose_ = verbose)
+                verbose_ = verbose, trace_=trace)
     }else{
       g<-LU_sparse_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                 lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
                 lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                 inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                verbose_ = verbose) 
+                verbose_ = verbose, trace_=trace) 
     }
     
     coef <-  g$coef
@@ -129,7 +131,7 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     
     std_coef <- g$std_coef
     colnames(std_coef) <-  paste("l",1:length(g$lambda),sep = "")
-    rownames(std_coef) <- c("(Intercept)",colnames(X_lu))
+    rownames(std_coef) <- c("(Intercept)",paste("group",group0))
     
     widx<-which(g$convFlag==1)
     if(length(widx)>0){
@@ -137,13 +139,25 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
         warning(paste("convergence failed at ",widx[i],"th lambda, ", g$iters[widx[i]],"th iterations",sep=""))
       }
     }
+    g$coef
+    eps=1e-10
+    inner_eps=1e-10
+    g<-LU_dense_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
+                    lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
+                    lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
+                    inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
+                    verbose_ = verbose, trace_=trace)
+    round(g$grads,4)
+    max(abs(g$grads))
+    optResult<-list(fValues=g$fVals,GGradients=g$grads)
+    iters = g$nUpdates+1
+    g$fVals_all = g$fVals_all[1:max(iters),]
+    g$fVals_all[g$fVals_all==0]=NA
     
     result <- structure(list(coef = coef, std_coef = std_coef, lambda=g$lambda,
                              nullDev=g$nullDev,deviance=g$deviance,
-                             iters= g$iters),class="PUfit")
-    
-    
-    
+                             iters= iters),class="PUfit")
+
     return(result)
   
   

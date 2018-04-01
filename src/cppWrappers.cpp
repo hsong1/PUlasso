@@ -12,24 +12,23 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 using namespace Eigen;
-
 using Rcpp::as;
 
+//' @export
 //[[Rcpp::export]]
 Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
                         Eigen::ArrayXd & gsize_,Eigen::ArrayXd & pen_,
                         Eigen::ArrayXd & lambdaseq_,bool user_lambdaseq_,
                         int pathLength_,double lambdaMinRatio_, double pi_,
                         int maxit_,double tol_,double inner_tol_,
-                        bool useStrongSet_, bool verbose_)
+                        bool useStrongSet_, bool verbose_, bool trace_)
 {
   try{
     LUfit<Eigen::Map<Eigen::MatrixXd> > lu(X_,z_,icoef_,gsize_,pen_,
                                            lambdaseq_,user_lambdaseq_,pathLength_,
                                            lambdaMinRatio_,pi_,maxit_,tol_,
-                                           inner_tol_,useStrongSet_,verbose_);
+                                           inner_tol_,useStrongSet_,verbose_,trace_);
     lu.LUfit_main();
-    lu.decenterX();
     
     return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
                               Rcpp::Named("std_coef") = lu.getStdCoefficients(),
@@ -38,7 +37,10 @@ Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Ei
                               Rcpp::Named("nullDev") = lu.getnullDev(),
                               Rcpp::Named("deviance") = lu.getDeviances(),
                               Rcpp::Named("lambda")=lu.getLambdaSequence(),
-                              Rcpp::Named("convFlag")=lu.getconvFlag());
+                              Rcpp::Named("convFlag")=lu.getconvFlag(),
+                              Rcpp::Named("fVals") = lu.getfVals(),
+                              Rcpp::Named("grads") = lu.getGeneralizedGradients(),
+                              Rcpp::Named("fVals_all") = lu.getfVals_all());
   }
   catch(const std::invalid_argument& e ){
     throw std::range_error(e.what());
@@ -52,13 +54,13 @@ Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & z_,
                          Eigen::ArrayXd & lambdaseq_,bool user_lambdaseq_,
                          int pathLength_,double lambdaMinRatio_, double pi_,
                          int maxit_,double tol_,double inner_tol_,
-                         bool useStrongSet_, bool verbose_)
+                         bool useStrongSet_, bool verbose_, bool trace_)
 {
   try{
     LUfit<Eigen::SparseMatrix<double> > lu(X_,z_,icoef_,gsize_,pen_,
                                            lambdaseq_,user_lambdaseq_,pathLength_,
                                            lambdaMinRatio_,pi_,maxit_,tol_,
-                                           inner_tol_,useStrongSet_,verbose_);
+                                           inner_tol_,useStrongSet_,verbose_,trace_);
     lu.LUfit_main();
     
     return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),

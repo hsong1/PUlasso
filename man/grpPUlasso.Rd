@@ -7,7 +7,7 @@
 grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
   penalty = NULL, lambda = NULL, nlambda = 100,
   lambdaMinRatio = ifelse(N < p, 0.05, 0.005), maxit = 1e+05, eps = 1e-04,
-  inner_eps = 0.01, verbose = FALSE)
+  inner_eps = 0.01, verbose = FALSE, trace = FALSE)
 }
 \arguments{
 \item{X}{Input matrix; each row is an observation. Can be a matrix or a sparse matrix.}

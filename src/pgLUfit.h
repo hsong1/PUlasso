@@ -57,7 +57,7 @@ protected:
     VectorXd Deviances;
     double nullDev;
     VectorXd fVals;
-    MatrixXd g_grads;
+    MatrixXd subgrads;
     MatrixXd fVals_all;
 //
 //    // proximal gradient functions
@@ -88,7 +88,7 @@ public:
     VectorXd getDeviances();
     VectorXd getfVals();
     MatrixXd getfVals_all();
-    MatrixXd getGeneralizedGradients();
+    MatrixXd getSubGradients();
     using pgGroupLassoFit<TX>::back_to_org;
     using pgGroupLassoFit<TX>::org_to_std;
     using pgGroupLassoFit<TX>::evalObjective;

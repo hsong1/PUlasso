@@ -1,6 +1,5 @@
 #include "LUfit.h"
 using namespace Rcpp;
-
 template <class TX>
 LUfit<TX>::LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,double inner_tol_,bool useStrongSet_,bool verbose_,bool trace_)
 :groupLassoFit<TX>(X_,z_,icoef_,gsize_,pen_,lambdaseq_,isUserLambdaseq_,pathLength_,lambdaMinRatio_, maxit_,tol_,verbose_,trace_),t(0.25),lresp(z_),pi(pi_),nUpdate(0),inner_tol(inner_tol_),useStrongSet(useStrongSet_)
@@ -14,7 +13,7 @@ LUfit<TX>::LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,Arr
     nUpdates = ArrayXi::Zero(K);
     Deviances = VectorXd::Zero(K);
     fVals = VectorXd::Zero(K);
-    g_grads = MatrixXd::Zero(p,K);
+    subgrads = MatrixXd::Zero(p,K);
     fVals_all = MatrixXd::Zero(maxit,K);
     
     VectorXd lpred0(N),beta0(p);
@@ -60,9 +59,9 @@ VectorXd LUfit<TX>::getDeviances(){return Deviances;}
 template <typename TX>
 VectorXd LUfit<TX>::getfVals(){return fVals;}
 template <typename TX>
-MatrixXd LUfit<TX>::getGeneralizedGradients(){return g_grads;}
+MatrixXd LUfit<TX>::getSubGradients(){return subgrads;}
 template <typename TX>
-MatrixXd LUfit<TX>::getfVals_all(){return fVals_all.topRows(nUpdate);}
+MatrixXd LUfit<TX>::getfVals_all(){return fVals_all;}
 
 template <typename TX>
 void LUfit<TX>::setupinactiveSets(int k, const VectorXd & resid, double lam_max, const ArrayXd & lambdaseq, bool useStrongSet)
@@ -238,6 +237,7 @@ void LUfit<TX>::LUfit_main()
     VectorXd diff(p);
     double error(1.0);
     bool converged_lam(false);
+    ArrayXd qlambda_k;//quadratic lambda
     ArrayXd lambda_k;
     bool convergedQ(false);
     VectorXd objGrad(p),KKTvec(p);
@@ -247,12 +247,12 @@ void LUfit<TX>::LUfit_main()
         if(verbose){Rcout<<"Fitting "<<k<<"th lambda\n";}
         iter    = 0;
         nUpdate = 0;
-        lambda_k = lambda_b(k, pen);
-        
+        qlambda_k = lambda_b(k, pen);
+        lambda_k = qlambda_k*t;
         converged_lam = false;
         
         while(iter<maxit&&!converged_lam){
-            convergedQ= quadraticBCD(resid, lambda_k,inner_tol);
+            convergedQ= quadraticBCD(resid, qlambda_k,inner_tol);
             diff = beta-beta_old;
             error = diff.cwiseAbs().maxCoeff();
             
@@ -270,16 +270,18 @@ void LUfit<TX>::LUfit_main()
                 beta = beta0 ;
                 lpred = linpred(beta);
             }
-            if(trace){fVals_all(nUpdate,k) = evalObjective(lpred,beta,(lambda_k*t));}
-            
+            // only for debugging
+            if(trace){fVals_all(nUpdate,k) = evalObjective(lpred,beta,lambda_k);}
             converged_lam = convergedQ&&(error<tol);
-            lpred_old = lpred;
-            updateObjFunc(lpred);
-            nUpdate++;
-            
-            if(k!=0){setupinactiveSets(k,resid,default_lambdaseq[0],lambdaseq, useStrongSet);};
-            beta_old = beta;
-            
+//            cout<<"conv_lam: "<<converged_lam<<endl;
+            if(!converged_lam){
+                lpred_old = lpred;
+                updateObjFunc(lpred);
+                nUpdate++;
+                
+                if(k!=0){setupinactiveSets(k,resid,default_lambdaseq[0],lambdaseq, useStrongSet);};
+                beta_old = beta;
+            }
         }
         
         Map<MatrixXd> coefficients_k(&coefficients.coeffRef(0, k),p,1);
@@ -289,18 +291,29 @@ void LUfit<TX>::LUfit_main()
         iters(k) = iter;
         nUpdates(k)=nUpdate;
         Deviances(k) = evalDev(lpred_old);
-        fVals(k) = evalObjective(lpred_old,beta,(lambda_k*t));
+        fVals(k) = evalObjective(lpred_old,beta,lambda_k);
         
-        VectorXd objGrad(p),KKTvec(p),gj(p);
+        VectorXd objGrad(p),KKTvec(p);
+        objGrad.setConstant(1); KKTvec.setConstant(1);
         objGrad=evalObjectiveGrad(lpred_old);
-        double gjnorm;
+        double gjnorm, bjnorm;
         KKTvec(0) = objGrad(0);
         for (int j=1;j<J;j++){
             Map<VectorXd> gj(&objGrad.coeffRef(grpSIdx(j)+1),gsize(j));
+            Map<VectorXd> bj(&beta.coeffRef(grpSIdx(j)+1),gsize(j));
+            bjnorm=bj.norm();
             gjnorm=gj.norm();
-            KKTvec.segment(grpSIdx(j)+1,gsize(j))= ((gjnorm>lambda_k(j))?(1-(lambda_k(j)/gjnorm)):0)*gj;
+            if(bjnorm>0){
+                if(lambda_k(j)>1e-10&&gjnorm>1e-10){
+                    KKTvec.segment(grpSIdx(j)+1,gsize(j))=(1-(lambda_k(j)/gjnorm))*gj;
+                }else{
+                    KKTvec.segment(grpSIdx(j)+1,gsize(j))=gj;
+                }
+            }else{
+                KKTvec.segment(grpSIdx(j)+1,gsize(j))= ((gjnorm>lambda_k(j))?(1-(lambda_k(j)/gjnorm)):0)*gj;
+            }
         }
-        g_grads.col(k) = KKTvec;
+        subgrads.col(k) = KKTvec;
 //        cout<<"fval:"<<evalObjective(lpred_old, beta)<<endl;
 //        cout<<"objGrad:\n"<<objGrad<<endl;
 //        cout<<"lambda:"<<lambdaseq(k)<<endl;
