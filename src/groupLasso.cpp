@@ -3,9 +3,10 @@ using namespace Eigen;
 
 //Constructor
 template <class TX>
-groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,int maxit_, double tol_, bool verbose_)
-  :X(X_),y(y_), gsize(gsize_), pen(pen_),lambdaseq(lambdaseq_), isUserLambdaseq(isUserLambdaseq_),pathLength(pathLength_),lambdaMinRatio(lambdaMinRatio_),maxit(maxit_), tol(tol_),verbose(verbose_),iter(0),resid(y_),converged_CD(false),converged_KKT(false)
+groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,int maxit_, double tol_, bool verbose_, bool trace_)
+  :X(X_),y(y_), gsize(gsize_), pen(pen_),lambdaseq(lambdaseq_), isUserLambdaseq(isUserLambdaseq_),pathLength(pathLength_),lambdaMinRatio(lambdaMinRatio_),maxit(maxit_), tol(tol_),verbose(verbose_),trace(trace_), iter(0),resid(y_),converged_CD(false),converged_KKT(false)
 {
+
   checkDesignMatrix(X);
   N = static_cast<int>(X.rows());
   p = static_cast<int>(X.cols())+1;
@@ -25,10 +26,10 @@ groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, Arra
   
   //Calculate Xcenter, Rinvs
   //For a dense class X, X = P0X, Sparse or Map class, no change in X
-  
+    
   Xcenter = VectorXd::Ones(p-1);
   Rinvs.resize(J);
-  if(verbose){Rcpp::Rcout<<"QR decompositions\n";}
+ // if(verbose){Rcout<<"QR decompositions\n";}
   Rinvs_X();
   
   //Initialize beta
@@ -53,7 +54,7 @@ groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, Arra
   convFlag.resize(K);
   convFlag.setZero();
   
-  if(verbose){Rcpp::Rcout<<"end of construction\n";}
+  //if(verbose){Rcpp::Rcout<<"end of construction\n";}
 }
 
 //Getters
@@ -251,35 +252,35 @@ void groupLassoFit<TX>::coordinateDescent_0(VectorXd & resid)
 template <typename TX>
 void groupLassoFit<TX>::blockCoordinateDescent(VectorXd & resid, const ArrayXd & lambda_k, const double tol)
 {
-  std::set<int>::const_iterator it;
-  VectorXd beta_old(p);
-  VectorXd diff(p);
-  double error(1);
-  converged_CD = false;
-  
-  while(!converged_CD&&iter<maxit)
-  {
-    beta_old = beta;
+    std::set<int>::const_iterator it;
+    VectorXd beta_old(p);
+    VectorXd diff(p);
+    double error(1);
+    converged_CD = false;
     
-    if(activeSet.size()>0){
-      it = activeSet.begin();
-      while(it!=activeSet.end())
-      {
-        D_coordinateDescent_j(*it, resid, lambda_k);
-        ++it;
-      }//end of one cycle
-      
-      iter++;
-    }
-    diff = beta-beta_old;
-    error = diff.cwiseAbs().maxCoeff();
-    
-    if(error<tol)
+    while(!converged_CD&&iter<maxit)
     {
-      converged_CD=true;
-    }
-    
-  }//end of while loop
+        beta_old = beta;
+        
+        if(activeSet.size()>0){
+            it = activeSet.begin();
+            while(it!=activeSet.end())
+            {
+                D_coordinateDescent_j(*it, resid, lambda_k);
+                ++it;
+            }//end of one cycle
+            
+            iter++;
+        }
+        diff = beta-beta_old;
+        error = diff.cwiseAbs().maxCoeff();
+        
+        if(error<tol)
+        {
+            converged_CD=true;
+        }
+        
+    }//end of while loop
 }
 
 template <typename TX>
@@ -298,7 +299,7 @@ bool groupLassoFit<TX>::quadraticBCD(VectorXd & resid, const ArrayXd & lambda_k,
       {
         if(iter % 10000==0&&iter!=0)
         {
-          if(verbose){Rcpp::Rcout<<"current iter = "<<iter<<std::endl;}
+          if(verbose){Rcout<<"current iter = "<<iter<<endl;}
         }
         
       }
@@ -310,7 +311,7 @@ bool groupLassoFit<TX>::quadraticBCD(VectorXd & resid, const ArrayXd & lambda_k,
       if(converged_CD&&!violation1)
         break;
     }//do BCD on A, check KKT on inactiveSet1
-    
+
     
     violation = KKT(resid,lambda_k,2);
     
@@ -323,54 +324,54 @@ bool groupLassoFit<TX>::quadraticBCD(VectorXd & resid, const ArrayXd & lambda_k,
 template <typename TX>
 void groupLassoFit<TX>::Rinvs_X()
 {
-  
-  for (int l=0;l<(p-1);++l)
-  {
-    Xcenter(l) = X.col(l).mean();
-    X.col(l) = X.col(l).array()-Xcenter(l);
-  }
-  
-  
-  for(int j=1;j<J;++j){
-    int sind = grpSIdx(j);
-    if(gsize(j)>1)
+    
+    for (int l=0;l<(p-1);++l)
     {
-      //Do QR decomposition
-      ColPivHouseholderQR<MatrixXd> qr(X.block(0,sind,N,gsize(j)));
-      
-      
-      if(qr.rank() < gsize(j)){throw std::invalid_argument("X(j) does not have full column rank");}
-      
-      MatrixXd R = qr.matrixR().topLeftCorner(qr.rank(), qr.rank()).triangularView<Upper>();
-      MatrixXd P =qr.colsPermutation();
-      R=R*P.inverse()/std::sqrt(N);
-      
-      Rinvs.at(j)= R.inverse();// QtQ = NIn. R' = R/sqrt(N)
+        Xcenter(l) = X.col(l).mean();
+        X.col(l) = X.col(l).array()-Xcenter(l);
     }
-    else
-    {
-      Rinvs.at(j) = X.block(0,sind,N,gsize(j)).adjoint()*X.block(0,sind,N,gsize(j))/N;
-      Rinvs.at(j) = Rinvs.at(j).array().sqrt().inverse();
+    
+    
+    for(int j=1;j<J;++j){
+        int sind = grpSIdx(j);
+        if(gsize(j)>1)
+        {
+            //Do QR decomposition
+            ColPivHouseholderQR<MatrixXd> qr(X.block(0,sind,N,gsize(j)));
+            
+            
+            if(qr.rank() < gsize(j)){throw std::invalid_argument("X(j) does not have full column rank");}
+            
+            MatrixXd R = qr.matrixR().topLeftCorner(qr.rank(), qr.rank()).triangularView<Upper>();
+            MatrixXd P =qr.colsPermutation();
+            R=R*P.inverse()/std::sqrt(N);
+            
+            Rinvs.at(j)= R.inverse();// QtQ = NIn. R' = R/sqrt(N)
+        }
+        else
+        {
+            Rinvs.at(j) = X.block(0,sind,N,gsize(j)).adjoint()*X.block(0,sind,N,gsize(j))/N;
+            Rinvs.at(j) = Rinvs.at(j).array().sqrt().inverse();
+        }
     }
-  }
 }
 
 template <class TX>
 void groupLassoFit<TX>::decenterX()
 {
-  for (int l=0;l<(p-1);++l)
-  {
-    X.col(l) = X.col(l).array()+Xcenter(l);
-  }
+    for (int l=0;l<(p-1);++l)
+    {
+        X.col(l) = X.col(l).array()+Xcenter(l);
+    }
 }
 
 template <class TX>
 void groupLassoFit<TX>::centerX()
 {
-  for (int l=0;l<(p-1);++l)
-  {
-    X.col(l) = X.col(l).array()-Xcenter(l);
-  }
+    for (int l=0;l<(p-1);++l)
+    {
+        X.col(l) = X.col(l).array()-Xcenter(l);
+    }
 }
 ///////////////////////////////////////////////////////
 //MatrixXd Specialization
@@ -446,14 +447,15 @@ void groupLassoFit<SparseMatrix<double> >::Rinvs_X()
 template <>
 void groupLassoFit<SparseMatrix<double> >::decenterX()
 {
-  //do nothing
+    //do nothing
 }
 
 template <>
 void groupLassoFit<SparseMatrix<double> >::centerX()
 {
-  //do nothing
+    //do nothing
 }
+
 //Do BCD in active set until active set coefficients converge or number of cycle reaches iter_max
 template <>
 void groupLassoFit<SparseMatrix<double> >::blockCoordinateDescent(VectorXd & resid, const ArrayXd & lambda_k, const double tol)
