@@ -2,16 +2,15 @@
 #define pgLUfit_h
 #include "pgGroupLasso.h"
 #include "sgd.h"
-#include <random>
+#include "Rcpp.h"
+// #include <random>
 using namespace Eigen;
 using namespace std;
 template <class TX>
 class pgLUfit : public pgGroupLassoFit<TX>
 {
 protected:
-//    pgGroupLassoFit<TX> pgGrpLasso;
-    std::discrete_distribution<> dist;
-//    using pgGroupLassoFit<TX>::X;// with intercept, N by p matrix, p = 1+k1+..+k(J-1)
+    using pgGroupLassoFit<TX>::X;// with intercept, N by p matrix, p = 1+k1+..+k(J-1)
     using pgGroupLassoFit<TX>::y;// size N
     using pgGroupLassoFit<TX>::beta;// size p
     using pgGroupLassoFit<TX>::pi;
@@ -31,7 +30,7 @@ protected:
     VectorXd stepSizeSeq;
     using pgGroupLassoFit<TX>::default_lambdaseq;
     using pgGroupLassoFit<TX>::grpSIdx;//size J
-//    using pgGroupLassoFit<TX>::iters;
+    using pgGroupLassoFit<TX>::iters;
 //    using pgGroupLassoFit<TX>::Rinvs;
     using pgGroupLassoFit<TX>::coefficients; //size p*k
     using pgGroupLassoFit<TX>::std_coefficients; //size p*k
@@ -50,45 +49,40 @@ protected:
 //
 //    ///////////////////////////////////////////
 //
+    
     double stepSize;
+    double stepSizeAdj;
     int batchSize;
+    bool useLipschitz;
+    std::vector<double> samplingProbabilities;
     std::string method;
-    ArrayXi nUpdates;
     VectorXd Deviances;
     double nullDev;
     VectorXd fVals;
     MatrixXd subgrads;
     MatrixXd fVals_all;
+    VectorXd L;
 //
-//    // proximal gradient functions
-//    void updateObjective(const VectorXd & lpred, const ArrayXi & rind, VectorXd & yhat, VectorXd & mustar);
-//
-//    void proxGrad_0(const VectorXd & yhat, const VectorXd & mustar);
-//    void proxGrad_1(const VectorXd & yhat, const VectorXd & mustar, const ArrayXi & ridx, ArrayXd lambda, double stepSize);
-//    void proxGrad(const VectorXd & yhat, const VectorXd & mustar, const ArrayXi & ridx, ArrayXd lambda, double stepSize);
-//
-//    //other functions
-//    //lambda sequence for 1<=k<=lambda.size()
-//    ArrayXd lambda_b(int k, const ArrayXd & pen);
+
+    using pgGroupLassoFit<TX>::q;
     double evalDev(const VectorXd & lpred);
-//    double evalObjective(const VectorXd & lpred, const VectorXd & beta);
-//    VectorXd evalObjectiveGrad(const VectorXd & lpred);
     
 public:
-    pgLUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,bool verbose_, double stepSize_,int sampleSize_, std::vector<double> samplingProbabilities_,std::string method_,bool trace_);
+    pgLUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,bool trace_);
    
     void pgLUfit_main();
     using pgGroupLassoFit<TX>::computeLambdaSequence;
     using pgGroupLassoFit<TX>::getCoefficients;
     using pgGroupLassoFit<TX>::getStdCoefficients;
-//    using pgGroupLassoFit<TX>::getIters;
+    using pgGroupLassoFit<TX>::getIters;
     using pgGroupLassoFit<TX>::getconvFlag;
-    ArrayXi getnUpdates();
     double getnullDev();
     VectorXd getDeviances();
     VectorXd getfVals();
     MatrixXd getfVals_all();
     MatrixXd getSubGradients();
+    double getStepSize();
+    std::vector<double> getSamplingProbabilities();
     using pgGroupLassoFit<TX>::back_to_org;
     using pgGroupLassoFit<TX>::org_to_std;
     using pgGroupLassoFit<TX>::evalObjective;

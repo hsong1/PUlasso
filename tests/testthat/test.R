@@ -66,10 +66,15 @@ cv.gn=cv.grpPUlasso(X=X,z=z,pi=truePrevalence,nlambda = 5,lambdaMinRatio = 1e-3,
 a=cvXrecover(cv.gn,X,z,j=1)
 cvgn1=grpPUlasso(a$X_lu_t,a$z_lu_t,pi=truePrevalence,lambda=cv.gn$lambda,eps = 1e-06)
 
+gn.gd=grpPUlasso(X=X,z=z,pi=truePrevalence,nlambda = 5,lambdaMinRatio = 1e-3, eps=1e-5,method = "GD",verbose = T)
+gn.svrg=grpPUlasso(X=X,z=z,pi=truePrevalence,nlambda = 5,lambdaMinRatio = 1e-3, eps=1e-5,method = "SVRG",verbose=T)
+
 test_that("Input : Dense matrix", {
   expect_lt(max(abs(gn$coef-gn.prev.coef)),1e-4)
   expect_lt(max(cv.gn$PUfit$std_coef-gn$std_coef),1e-4)
   expect_lt(max(abs(cvgn1$coef-cv.gn$cvcoef$cv1)),1e-4)
+  expect_lt(max(abs(gn$coef-gn.gd$coef)),1e-4)
+  expect_lt(max(abs(gn$coef-gn.gd$svrg)),1e-4)
 })
 ##################################################################################################
 context("Input : Sparse matrix")
@@ -79,6 +84,10 @@ cv.spgn = cv.grpPUlasso(X=spX,z=z,pi=truePrevalence,nlambda = 5,lambdaMinRatio =
 a=cvXrecover(cv.spgn,spX,z,j=1)
 cvspgn1=grpPUlasso(a$X_lu_t,a$z_lu_t,pi=truePrevalence,lambda=cv.spgn$lambda,eps = 1e-06)
 
+spgn.gd=grpPUlasso(X=spX,z=z,pi=truePrevalence,nlambda = 5,lambdaMinRatio = 1e-3, eps=1e-5,method = "GD",verbose = T)
+spgn.svrg=grpPUlasso(X=spX,z=z,pi=truePrevalence,nlambda = 5,lambdaMinRatio = 1e-3, eps=1e-5,method = "SVRG",verbose = T)
+
+
 test_that("Input : Sparse matrix",{
   expect_lt(max(abs(spgn$coef-spgn.prev.coef)),1e-4)
   expect_lt(max(spgn$coef-spgnd$coef),1e-4)
@@ -87,10 +96,9 @@ test_that("Input : Sparse matrix",{
 })
 
 ##################################################################################################
-##################################################################################################
 context("Deviance")
 test_that("Deviance",{
-  expect_lt(max(gn$deviance-deviances(X=X,z=z,pi=truePrevalence,coefMat = gn$coef)),1e-5)
-  expect_lt(max(spgn$deviance-deviances(X=spX,z=z,pi=truePrevalence,coefMat = spgn$coef)),1e-5)
+  expect_lt(max(gn$deviance-deviances(X=X,z=z,pi=truePrevalence,coefMat = gn$coef)),1e-4)
+  expect_lt(max(spgn$deviance-deviances(X=spX,z=z,pi=truePrevalence,coefMat = spgn$coef)),1e-4)
 })
 ##################################################################################################

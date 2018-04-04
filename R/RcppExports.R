@@ -2,12 +2,13 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' @export
-LU_dense_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, trace_) {
-    .Call('_PUlasso_LU_dense_cpp', PACKAGE = 'PUlasso', X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, trace_)
+LU_dense_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, stepSize_, stepSizeAdj_, batchSize_, samplingProbabilities_, useLipschitz_, method_, trace_) {
+    .Call('_PUlasso_LU_dense_cpp', PACKAGE = 'PUlasso', X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, stepSize_, stepSizeAdj_, batchSize_, samplingProbabilities_, useLipschitz_, method_, trace_)
 }
 
-LU_sparse_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, trace_) {
-    .Call('_PUlasso_LU_sparse_cpp', PACKAGE = 'PUlasso', X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, trace_)
+#' @export
+LU_sparse_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, stepSize_, stepSizeAdj_, batchSize_, samplingProbabilities_, useLipschitz_, method_, trace_) {
+    .Call('_PUlasso_LU_sparse_cpp', PACKAGE = 'PUlasso', X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, stepSize_, stepSizeAdj_, batchSize_, samplingProbabilities_, useLipschitz_, method_, trace_)
 }
 
 cv_LU_dense_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, nfolds_, nfits_, ncores_) {
@@ -18,10 +19,12 @@ cv_LU_sparse_cpp <- function(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lamb
     .Call('_PUlasso_cv_LU_sparse_cpp', PACKAGE = 'PUlasso', X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, nfolds_, nfits_, ncores_)
 }
 
+#' @export
 deviances_dense_cpp <- function(coefMat_, X_, z_, pi_) {
     .Call('_PUlasso_deviances_dense_cpp', PACKAGE = 'PUlasso', coefMat_, X_, z_, pi_)
 }
 
+#' @export
 deviances_sparse_cpp <- function(coefMat_, X_, z_, pi_) {
     .Call('_PUlasso_deviances_sparse_cpp', PACKAGE = 'PUlasso', coefMat_, X_, z_, pi_)
 }

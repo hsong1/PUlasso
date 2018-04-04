@@ -68,9 +68,9 @@ public:
     VectorXd q(int i);
 //public:
     //getters
+    ArrayXi getIters();
     MatrixXd getCoefficients();
     MatrixXd getStdCoefficients();
-    ArrayXi getIters();
     ArrayXd getLambdaSequence();
     ArrayXi getconvFlag();
     

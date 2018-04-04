@@ -18,13 +18,20 @@
 #'@param maxit Maximum number of iterations. 
 #'@param eps Convergence threshold for the outer loop. The algorithm iterates until the maximum change in coefficients is less than eps in the outer loop.
 #'@param inner_eps Convergence threshold for the inner loop. The algorithm iterates until the maximum change in coefficients is less than eps in the inner loop.
-#'@param verbose a logical value. if TRUE, the function prints out the fitting process.
+#'@param verbose A logical value. if TRUE, the function prints out the fitting process.
+#'@param stepSize A step size for gradient-based optimization. if NULL, a step size is taken to be stepSizeAdj/mean(Li) where Li is a Lipschitz constant for ith sample
+#'@param stepSizeAdj A step size adjustment. By default, adjustment is 1 for GD and SGD, 1/8 for SVRG and 1/16 for SAG.
+#'@param bachSize A batch size. Default is 1.
+#'@param samplingProbabilities sampling probabilities for each of samples for stochastic gradient-based optimization. if NULL, each sample is chosen proportionally to Li.
+#'@param method Optimization method. Default is Coordinate Descent. CD for Coordinate Descent, GD for Gradient Descent, SGD for Stochastic Gradient Descent, SVRG for Stochastic Variance Reduction Gradient, SAG for Stochastic Averageing Gradient.
+#'@param trace A logical value. if TRUE, all intermediate objective function values at each MM update are saved.
 #'@return coef A p by length(lambda) matrix of coefficients
 #'@return std_coef A p by length(lambda) matrix of coefficients in a standardized scale
 #'@return lambda The actual sequence of lambda values used.
 #'@return nullDev Null deviance defined to be 2*(logLik_sat -logLik_null)
 #'@return deviance Deviance defined to be 2*(logLik_sat -logLik(model))
-#'@return iters number of iterations
+#'@return optResult A list containing the result of the optimization. fValues, subGradients contain objective function values and subgradient vectors at each lambda value. If trace = TRUE, all intermediate function values are also saved in all_fValues.
+#'@return iters Number of iterations(EM updates) if method = "CD". Number of steps taken otherwise.
 #'@examples
 #'data("simulPU")
 #'fit<-grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
@@ -34,7 +41,8 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                 penalty=NULL,lambda=NULL, nlambda = 100, 
                 lambdaMinRatio=ifelse(N < p, 0.05, 0.005),maxit=100000,
                 eps=1e-04,inner_eps = 1e-02, 
-                verbose = FALSE, trace=FALSE)
+                verbose = FALSE, stepSize=NULL, stepSizeAdjustment = NULL, batchSize=1, 
+                samplingProbabilities=NULL, method=c("CD","GD","SGD","SVRG","SAG"),trace=FALSE)
 {
   if(is.null(dim(X))){stop("not a valid X")}
     group0 <- group
@@ -60,8 +68,8 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     # Apply strong set screening if p >N
     usestrongSet=ifelse(N<p,FALSE,TRUE)
     
-    #input check
-    
+    #input checks
+    method = match.arg(method,choices=c("CD","GD","SGD","SVRG","SAG"))
     if(length(z_lu)!=N){stop("nrow(X) should be the same as length(z)")}
     if(length(group)!=p){stop("lenght(group) should be the same as ncol(X)")}
     if(!all(group==sort(group))){stop("columns must be in order")}
@@ -70,6 +78,13 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     }
     if(!all(z_lu%in%c(0,1))){stop("z should be 0 or 1")}
     # if(mean(z_lu)==0||mean(z_lu)==1){stop("y can't be all 0 or 1")}
+    if(!is.null(stepSize)){
+      if(stepSize <= 0){stop("step size should be > 0 ")}
+    }
+    if(!is.null(samplingProbabilities)){
+      if(length(samplingProbabilities)!=N){stop("length of sampling probability should be equal to the nrow(X)")}
+      if(any(samplingProbabilities<0)){stop("all sampling probabilities should >= 0")}
+    }
     if (is.null(lambda)) {
       if (lambdaMinRatio >= 1){stop("lambdaMinRatio should be less than 1")}
       user_lambdaseq = FALSE
@@ -90,16 +105,12 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     }
     if(!(class(X_lu)=="matrix"||class(X_lu)=="dgCMatrix")){stop("X must be a matrix or a sparse matrix")}
    
-    
-    
-    if(is.null(initial_coef))
-    {
+    if(is.null(initial_coef)){
       icoef <- rep(0,p+1)
       pr <-  pi
       icoef[1] = log(pr/(1-pr))
       if(is.nan(icoef[1])){stop("not a valid pi=P(Y=1)")}
-    }else
-    {
+    }else{
       if(length(initial_coef)!=(p+1)){stop("length of initial_coef should be the same as ncol(X_lu)+1")}
       icoef <- initial_coef
     }
@@ -111,18 +122,33 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
       pen <- c(0, penalty)
     }
     
+    if(is.null(stepSize)||is.null(samplingProbabilities)){useLipschitz = TRUE}
+    if(is.null(stepSize)){stepSize=0}
+    if(is.null(samplingProbabilities)){samplingProbabilities=1}
+    if(is.null(stepSizeAdjustment)){
+      if(method %in% c("GD","SGD")){
+        adj = 1
+        }else if(method =="SVRG"){
+        adj = 1/8
+        }else{
+        adj = 1/16
+      }
+    }else{adj = stepSizeAdjustment}
+    
     if(!is.sparse){
       g<-LU_dense_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                 lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
                 lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                 inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                verbose_ = verbose, trace_=trace)
+                verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,
+                samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
     }else{
       g<-LU_sparse_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
-                lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
-                lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
-                inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                verbose_ = verbose, trace_=trace) 
+                      lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
+                      lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
+                      inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
+                      verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj,batchSize_=batchSize,
+                      samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
     }
     
     coef <-  g$coef
@@ -139,26 +165,33 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
         warning(paste("convergence failed at ",widx[i],"th lambda, ", g$iters[widx[i]],"th iterations",sep=""))
       }
     }
-    g$coef
-    eps=1e-10
-    inner_eps=1e-10
-    g<-LU_dense_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
-                    lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
-                    lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
-                    inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                    verbose_ = verbose, trace_=trace)
-    round(g$grads,4)
-    max(abs(g$grads))
-    optResult<-list(fValues=g$fVals,GGradients=g$grads)
-    iters = g$nUpdates+1
-    g$fVals_all = g$fVals_all[1:max(iters),]
-    g$fVals_all[g$fVals_all==0]=NA
     
+    if(method=="CD"){
+      iters = g$nUpdates+1
+      if(!trace){
+        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads)
+      }else{
+        fVals_all = g$fVals_all[1:max(iters),,drop=F]
+        for(k in 1:ncol(fVals_all)){fVals_all[-(1:iters[k]),k]=NA}
+        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads, all_fValues = fVals_all)}
+    }else{ #if not CD,
+      iters=g$iters
+      if(!trace){
+        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads,
+                        stepSize=g$stepSize,samplingProbabilities=g$samplingProbabilities/sum(g$samplingProbabilities))
+      }else{
+        fVals_all = g$fVals_all[1:max(iters),,drop=F]
+        for(k in 1:ncol(fVals_all)){fVals_all[-(1:iters[k]),k]=NA}
+        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads,
+                        stepSize=g$stepSize,samplingProbabilities=g$samplingProbabilities/sum(g$samplingProbabilities),
+                        all_fValues = fVals_all)
+      }
+    }
+    
+  
     result <- structure(list(coef = coef, std_coef = std_coef, lambda=g$lambda,
-                             nullDev=g$nullDev,deviance=g$deviance,
-                             iters= iters),class="PUfit")
+                             nullDev=g$nullDev,deviance=g$deviance,optResult=optResult,
+                             iters= iters,call=match.call()),class="PUfit")
 
     return(result)
-  
-  
 }

@@ -174,6 +174,41 @@ ArrayXd pgGroupLassoFit<TX>::computeLambdaSequence(const VectorXd & y)
     double TOLERANCE(1e-08);
     
     gradnorm.setZero();
+    
+    
+    for (int j=1; j<J;++j)
+    {
+        int sind = grpSIdx(j);
+        gj = (X.block(0,sind,N,gsize(j)).adjoint()*y)/N;
+        gradnorm(j) = gj.norm()/pen(j);
+    }
+    
+    lammax = gradnorm.maxCoeff()+TOLERANCE;
+    
+    double logDiff=std::log(lammax)-std::log(lambdaMinRatio*lammax);
+    double ratio=std::exp(-logDiff/(pathLength-1));
+    
+    lambda_path(0)=lammax;
+    for (int i=1; i<pathLength;++i)
+    {
+        lambda_path(i)=lambda_path(i-1)*ratio;
+    }
+    
+    return lambda_path;
+}
+
+template <>
+ArrayXd pgGroupLassoFit<SparseMatrix<double> >::computeLambdaSequence(const VectorXd & y)
+{
+    ArrayXd lambda_path(pathLength);
+    //    std::vector<VectorXd> g;
+    //    g.resize(J);
+    VectorXd gradnorm(J);
+    VectorXd gj;
+    double lammax(1);
+    double TOLERANCE(1e-08);
+    
+    gradnorm.setZero();
     VectorXd ycentered = y.array()-y.mean();
     
     for (int j=1; j<J;++j)
@@ -197,7 +232,6 @@ ArrayXd pgGroupLassoFit<TX>::computeLambdaSequence(const VectorXd & y)
     
     return lambda_path;
 }
-
 
 //Rinvs
 //X scaled and centered after

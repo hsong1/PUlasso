@@ -8,7 +8,7 @@
 #include "groupLasso.h"
 #include "LUfit.h"
 #include "cv_LUfit.h"
-//#include <bigmemory/MatrixAccessor.hpp>
+#include "pgLUfit.h"
 #include <Rcpp.h>
 using namespace Rcpp;
 using namespace Eigen;
@@ -21,26 +21,49 @@ Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Ei
                         Eigen::ArrayXd & lambdaseq_,bool user_lambdaseq_,
                         int pathLength_,double lambdaMinRatio_, double pi_,
                         int maxit_,double tol_,double inner_tol_,
-                        bool useStrongSet_, bool verbose_, bool trace_)
+                        bool useStrongSet_, bool verbose_, double stepSize_,double stepSizeAdj_,int batchSize_,
+                        std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,bool trace_)
 {
+  
   try{
-    LUfit<Eigen::Map<Eigen::MatrixXd> > lu(X_,z_,icoef_,gsize_,pen_,
-                                           lambdaseq_,user_lambdaseq_,pathLength_,
-                                           lambdaMinRatio_,pi_,maxit_,tol_,
-                                           inner_tol_,useStrongSet_,verbose_,trace_);
-    lu.LUfit_main();
     
-    return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
-                              Rcpp::Named("std_coef") = lu.getStdCoefficients(),
-                              Rcpp::Named("iters") = lu.getIters(),
-                              Rcpp::Named("nUpdates") = lu.getnUpdates(),
-                              Rcpp::Named("nullDev") = lu.getnullDev(),
-                              Rcpp::Named("deviance") = lu.getDeviances(),
-                              Rcpp::Named("lambda")=lu.getLambdaSequence(),
-                              Rcpp::Named("convFlag")=lu.getconvFlag(),
-                              Rcpp::Named("fVals") = lu.getfVals(),
-                              Rcpp::Named("grads") = lu.getGeneralizedGradients(),
-                              Rcpp::Named("fVals_all") = lu.getfVals_all());
+    if(method_=="CD"){
+      LUfit<Eigen::Map<Eigen::MatrixXd> > lu(X_,z_,icoef_,gsize_,pen_,
+                                             lambdaseq_,user_lambdaseq_,pathLength_,
+                                             lambdaMinRatio_,pi_,maxit_,tol_,
+                                             inner_tol_,useStrongSet_,verbose_,trace_);
+      lu.LUfit_main();
+      return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
+                                Rcpp::Named("std_coef") = lu.getStdCoefficients(),
+                                Rcpp::Named("iters") = lu.getIters(),
+                                Rcpp::Named("nUpdates") = lu.getnUpdates(),
+                                Rcpp::Named("nullDev") = lu.getnullDev(),
+                                Rcpp::Named("deviance") = lu.getDeviances(),
+                                Rcpp::Named("lambda")=lu.getLambdaSequence(),
+                                Rcpp::Named("convFlag")=lu.getconvFlag(),
+                                Rcpp::Named("fVals") = lu.getfVals(),
+                                Rcpp::Named("subgrads") = lu.getSubGradients(),
+                                Rcpp::Named("fVals_all") = lu.getfVals_all());
+      
+    }else{
+      pgLUfit<Eigen::Map<MatrixXd> > lu(X_,z_,icoef_,gsize_,pen_,lambdaseq_,user_lambdaseq_,pathLength_,
+                                        lambdaMinRatio_,pi_,maxit_,tol_,verbose_,
+                                        stepSize_,stepSizeAdj_,batchSize_,samplingProbabilities_,useLipschitz_,method_,trace_);
+      lu.pgLUfit_main();
+      return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
+                                Rcpp::Named("std_coef") = lu.getStdCoefficients(),
+                                Rcpp::Named("iters") = lu.getIters(),
+                                Rcpp::Named("nullDev") = lu.getnullDev(),
+                                Rcpp::Named("deviance") = lu.getDeviances(),
+                                Rcpp::Named("lambda")=lu.getLambdaSequence(),
+                                Rcpp::Named("convFlag")=lu.getconvFlag(),
+                                Rcpp::Named("fVals") = lu.getfVals(),
+                                Rcpp::Named("subgrads") = lu.getSubGradients(),
+                                Rcpp::Named("fVals_all") = lu.getfVals_all(),
+                                Rcpp::Named("stepSize") = lu.getStepSize(),
+                                Rcpp::Named("samplingProbabilities")=lu.getSamplingProbabilities());
+      // return R_NilValue;
+    }
   }
   catch(const std::invalid_argument& e ){
     throw std::range_error(e.what());
@@ -48,29 +71,55 @@ Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Ei
   return R_NilValue;
 }
 
+//' @export
 //[[Rcpp::export]]
 Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
                          Eigen::ArrayXd & gsize_,Eigen::ArrayXd & pen_,
                          Eigen::ArrayXd & lambdaseq_,bool user_lambdaseq_,
                          int pathLength_,double lambdaMinRatio_, double pi_,
                          int maxit_,double tol_,double inner_tol_,
-                         bool useStrongSet_, bool verbose_, bool trace_)
+                         bool useStrongSet_, bool verbose_,double stepSize_,double stepSizeAdj_,int batchSize_,
+                         std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,bool trace_)
 {
   try{
-    LUfit<Eigen::SparseMatrix<double> > lu(X_,z_,icoef_,gsize_,pen_,
-                                           lambdaseq_,user_lambdaseq_,pathLength_,
-                                           lambdaMinRatio_,pi_,maxit_,tol_,
-                                           inner_tol_,useStrongSet_,verbose_,trace_);
-    lu.LUfit_main();
     
-    return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
-                              Rcpp::Named("std_coef") = lu.getStdCoefficients(),
-                              Rcpp::Named("iters") = lu.getIters(),
-                              Rcpp::Named("nUpdates") = lu.getnUpdates(),
-                              Rcpp::Named("nullDev") = lu.getnullDev(),
-                              Rcpp::Named("deviance") = lu.getDeviances(),
-                              Rcpp::Named("lambda")=lu.getLambdaSequence(),
-                              Rcpp::Named("convFlag")=lu.getconvFlag());
+    if(method_=="CD"){
+      LUfit<Eigen::SparseMatrix<double> > lu(X_,z_,icoef_,gsize_,pen_,
+                                             lambdaseq_,user_lambdaseq_,pathLength_,
+                                             lambdaMinRatio_,pi_,maxit_,tol_,
+                                             inner_tol_,useStrongSet_,verbose_,trace_);
+      lu.LUfit_main();
+      return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
+                                Rcpp::Named("std_coef") = lu.getStdCoefficients(),
+                                Rcpp::Named("iters") = lu.getIters(),
+                                Rcpp::Named("nUpdates") = lu.getnUpdates(),
+                                Rcpp::Named("nullDev") = lu.getnullDev(),
+                                Rcpp::Named("deviance") = lu.getDeviances(),
+                                Rcpp::Named("lambda")=lu.getLambdaSequence(),
+                                Rcpp::Named("convFlag")=lu.getconvFlag(),
+                                Rcpp::Named("fVals") = lu.getfVals(),
+                                Rcpp::Named("subgrads") = lu.getSubGradients(),
+                                Rcpp::Named("fVals_all") = lu.getfVals_all());
+      
+    }else{
+      pgLUfit<Eigen::SparseMatrix<double> > lu(X_,z_,icoef_,gsize_,pen_,lambdaseq_,user_lambdaseq_,pathLength_,
+                                        lambdaMinRatio_,pi_,maxit_,tol_,verbose_,
+                                        stepSize_,stepSizeAdj_,batchSize_,samplingProbabilities_,useLipschitz_,method_,trace_);
+      lu.pgLUfit_main();
+      return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
+                                Rcpp::Named("std_coef") = lu.getStdCoefficients(),
+                                Rcpp::Named("iters") = lu.getIters(),
+                                Rcpp::Named("nullDev") = lu.getnullDev(),
+                                Rcpp::Named("deviance") = lu.getDeviances(),
+                                Rcpp::Named("lambda")=lu.getLambdaSequence(),
+                                Rcpp::Named("convFlag")=lu.getconvFlag(),
+                                Rcpp::Named("fVals") = lu.getfVals(),
+                                Rcpp::Named("subgrads") = lu.getSubGradients(),
+                                Rcpp::Named("fVals_all") = lu.getfVals_all(),
+                                Rcpp::Named("stepSize") = lu.getStepSize(),
+                                Rcpp::Named("samplingProbabilities")=lu.getSamplingProbabilities());
+      // return R_NilValue;
+    }
   }
   catch(const std::invalid_argument& e ){
     throw std::range_error(e.what());
@@ -79,6 +128,7 @@ Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & z_,
 }
 
 
+//' @export
 //[[Rcpp::plugins(openmp)]]
 //[[Rcpp::export]]
 Rcpp::List cv_LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
@@ -110,7 +160,10 @@ Rcpp::List cv_LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_,
                               Rcpp::Named("f_nullDev") = lu_f.getnullDev(),
                               Rcpp::Named("f_deviance") = lu_f.getDeviances(),
                               Rcpp::Named("f_lambda") = lu_f.getLambdaSequence(),
-                              Rcpp::Named("f_convFlag")= lu_f.getconvFlag());
+                              Rcpp::Named("f_convFlag")= lu_f.getconvFlag(),
+                              Rcpp::Named("f_fVals") = lu_f.getfVals(),
+                              Rcpp::Named("f_subgrads") = lu_f.getSubGradients(),
+                              Rcpp::Named("f_fVals_all") = lu_f.getfVals_all());
   }
   catch(const std::invalid_argument& e ){
     throw std::range_error(e.what());
@@ -118,6 +171,7 @@ Rcpp::List cv_LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_,
   return R_NilValue;
 }
 
+//' @export
 //[[Rcpp::plugins(openmp)]]
 //[[Rcpp::export]]
 Rcpp::List cv_LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
@@ -147,7 +201,10 @@ Rcpp::List cv_LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & 
                               Rcpp::Named("f_nullDev") = lu_f.getnullDev(),
                               Rcpp::Named("f_deviance") = lu_f.getDeviances(),
                               Rcpp::Named("f_lambda") = lu_f.getLambdaSequence(),
-                              Rcpp::Named("f_convFlag")= lu_f.getconvFlag());
+                              Rcpp::Named("f_convFlag")= lu_f.getconvFlag(),
+                              Rcpp::Named("f_fVals") = lu_f.getfVals(),
+                              Rcpp::Named("f_subgrads") = lu_f.getSubGradients(),
+                              Rcpp::Named("f_fVals_all") = lu_f.getfVals_all());
   }
   catch(const std::invalid_argument& e ){
     throw std::range_error(e.what());
@@ -155,7 +212,7 @@ Rcpp::List cv_LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & 
   return R_NilValue;
 }
 
-
+//' @export
 //[[Rcpp::export]]
 Eigen::MatrixXd deviances_dense_cpp(Eigen::MatrixXd & coefMat_, Eigen::Map<Eigen::MatrixXd> & X_, Eigen::VectorXd & z_, double pi_)
 {
@@ -169,6 +226,7 @@ Eigen::MatrixXd deviances_dense_cpp(Eigen::MatrixXd & coefMat_, Eigen::Map<Eigen
   return deviances;
 }
 
+//' @export
 //[[Rcpp::export]]
 Eigen::MatrixXd deviances_sparse_cpp(Eigen::MatrixXd & coefMat_, Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & z_, double pi_)
 {
