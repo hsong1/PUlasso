@@ -3,7 +3,7 @@ using namespace Eigen;
 
 //Constructor
 template <class TX>
-pgGroupLassoFit<TX>::pgGroupLassoFit(TX & X_, VectorXd & y_, double pi_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,int maxit_, double tol_, bool verbose_, bool trace_)
+pgGroupLassoFit<TX>::pgGroupLassoFit(TX & X_, VectorXd & y_, double pi_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,int maxit_, double tol_, bool verbose_, int trace_)
 :X(X_),y(y_), pi(pi_), gsize(gsize_), pen(pen_),lambdaseq(lambdaseq_), isUserLambdaseq(isUserLambdaseq_),pathLength(pathLength_),lambdaMinRatio(lambdaMinRatio_),maxit(maxit_), tol(tol_),verbose(verbose_),trace(trace_),iter(0)
 {
     checkDesignMatrix(X);

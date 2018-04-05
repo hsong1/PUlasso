@@ -1,7 +1,7 @@
 #include "LUfit.h"
-using namespace Rcpp;
+
 template <class TX>
-LUfit<TX>::LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,double inner_tol_,bool useStrongSet_,bool verbose_,bool trace_)
+LUfit<TX>::LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,double inner_tol_,bool useStrongSet_,bool verbose_,int trace_)
 :groupLassoFit<TX>(X_,z_,icoef_,gsize_,pen_,lambdaseq_,isUserLambdaseq_,pathLength_,lambdaMinRatio_, maxit_,tol_,verbose_,trace_),t(0.25),lresp(z_),pi(pi_),nUpdate(0),inner_tol(inner_tol_),useStrongSet(useStrongSet_)
 {
     //Initialize LU parameters
@@ -14,7 +14,10 @@ LUfit<TX>::LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,Arr
     Deviances = VectorXd::Zero(K);
     fVals = VectorXd::Zero(K);
     subgrads = MatrixXd::Zero(p,K);
-    fVals_all = MatrixXd::Zero(maxit,K);
+    if(trace>=1){
+        fVals_all.resize(maxit+1, K);fVals_all.setZero();
+        beta_all.resize(p*K, maxit+1);beta_all.setZero();
+    }
     
     VectorXd lpred0(N),beta0(p);
     lpred0 = VectorXd::Ones(N)*std::log(pi/(1-pi));
@@ -61,7 +64,9 @@ VectorXd LUfit<TX>::getfVals(){return fVals;}
 template <typename TX>
 MatrixXd LUfit<TX>::getSubGradients(){return subgrads;}
 template <typename TX>
-MatrixXd LUfit<TX>::getfVals_all(){return fVals_all;}
+SparseMatrix<double> LUfit<TX>::getfVals_all(){return fVals_all.sparseView();}
+template <typename TX>
+SparseMatrix<double> LUfit<TX>::getbeta_all(){return beta_all.sparseView();}
 
 template <typename TX>
 void LUfit<TX>::setupinactiveSets(int k, const VectorXd & resid, double lam_max, const ArrayXd & lambdaseq, bool useStrongSet)
@@ -234,6 +239,7 @@ void LUfit<TX>::LUfit_main()
 {
     
     VectorXd beta_old(beta);
+    MatrixXd betaMat;
     VectorXd diff(p);
     double error(1.0);
     bool converged_lam(false);
@@ -241,17 +247,32 @@ void LUfit<TX>::LUfit_main()
     ArrayXd lambda_k;
     bool convergedQ(false);
     VectorXd objGrad(p),KKTvec(p);
+    if(trace>=1){
+        betaMat.resize(p,(maxit+1)); betaMat.setZero();
+    }
     
     for (int k=0;k<K;++k)
     {
-        if(verbose){Rcout<<"Fitting "<<k<<"th lambda\n";}
+        if(verbose){Rcpp::Rcout<<"Fitting "<<k<<"th lambda\n";}
         iter    = 0;
         nUpdate = 0;
         qlambda_k = lambda_b(k, pen);
         lambda_k = qlambda_k*t;
         converged_lam = false;
         
-        while(iter<maxit&&!converged_lam){
+        while(nUpdate<maxit&&!converged_lam){
+            switch(trace){
+                case 1:
+                    betaMat.col(nUpdate) = beta; break;
+                case 2:
+                    fVals_all(nUpdate,k)= evalObjective(lpred_old,beta,lambda_k); break;
+                case 3:
+                    betaMat.col(nUpdate) = beta;
+                    fVals_all(nUpdate,k)= evalObjective(lpred_old,beta,lambda_k); break;
+                default:
+                    break;
+            }
+
             convergedQ= quadraticBCD(resid, qlambda_k,inner_tol);
             diff = beta-beta_old;
             error = diff.cwiseAbs().maxCoeff();
@@ -270,18 +291,16 @@ void LUfit<TX>::LUfit_main()
                 beta = beta0 ;
                 lpred = linpred(beta);
             }
-            // only for debugging
-            if(trace){fVals_all(nUpdate,k) = evalObjective(lpred,beta,lambda_k);}
+            
             converged_lam = convergedQ&&(error<tol);
-//            cout<<"conv_lam: "<<converged_lam<<endl;
             if(!converged_lam){
                 lpred_old = lpred;
                 updateObjFunc(lpred);
-                nUpdate++;
                 
                 if(k!=0){setupinactiveSets(k,resid,default_lambdaseq[0],lambdaseq, useStrongSet);};
                 beta_old = beta;
             }
+            nUpdate++;
         }
         
         Map<MatrixXd> coefficients_k(&coefficients.coeffRef(0, k),p,1);
@@ -289,7 +308,7 @@ void LUfit<TX>::LUfit_main()
         coefficients_k = back_to_org(beta);
         std_coefficients_k = beta;
         iters(k) = iter;
-        nUpdates(k)=nUpdate;
+        nUpdates(k) = nUpdate;
         Deviances(k) = evalDev(lpred_old);
         fVals(k) = evalObjective(lpred_old,beta,lambda_k);
         
@@ -314,12 +333,28 @@ void LUfit<TX>::LUfit_main()
             }
         }
         subgrads.col(k) = KKTvec;
+        switch(trace){
+            case 1:
+                betaMat.col(nUpdate) = beta; break;
+            case 2:
+                fVals_all(nUpdate,k)= evalObjective(lpred_old,beta,lambda_k);
+              
+              break;
+            case 3:
+                betaMat.col(nUpdate) = beta;
+                fVals_all(nUpdate,k)= evalObjective(lpred_old,beta,lambda_k); break;
+            default:
+                break;
+        }
+        if(trace>=1){
+            beta_all.block(k*p,0,p,(nUpdate+1))=betaMat.block(0,0,p,(nUpdate+1));
+        }
 //        cout<<"fval:"<<evalObjective(lpred_old, beta)<<endl;
 //        cout<<"objGrad:\n"<<objGrad<<endl;
 //        cout<<"lambda:"<<lambdaseq(k)<<endl;
 //        cout<<"|objGrad|<ambda:\n"<<KKTvec<<endl;
         if(verbose&&converged_lam)
-        {Rcout<<"converged at "<<nUpdate<<"th iterations\n";}
+        {Rcpp::Rcout<<"converged at "<<nUpdate<<"th iterations\n";}
         if(!converged_lam){convFlag(k)=1;}
         
     }

@@ -29,7 +29,7 @@ public:
     int maxit;
     double tol;
     bool verbose;
-    bool trace;
+    int trace;
     
     //
     int iter;// current iterations
@@ -55,7 +55,7 @@ public:
 
     //These constructors will be called only from derived classes
     pgGroupLassoFit(TX & X_, VectorXd & y_, double pi_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,  int pathLength_,
-                  double lambdaMinRatio_,int maxit_, double tol_, bool verbose_,bool trace_);
+                  double lambdaMinRatio_,int maxit_, double tol_, bool verbose_,int trace_);
     ~pgGroupLassoFit(){
         destandardizeX();
     }

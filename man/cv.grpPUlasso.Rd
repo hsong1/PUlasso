@@ -6,9 +6,12 @@
 \usage{
 cv.grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
   penalty = NULL, lambda = NULL, nlambda = 100,
-  lambdaMinRatio = ifelse(N < p, 0.05, 0.005), maxit = 1e+05, eps = 1e-04,
-  inner_eps = 0.01, verbose = FALSE, nfolds = 10, nfits = nfolds,
-  nCores = 1)
+  lambdaMinRatio = ifelse(N < p, 0.05, 0.005), maxit = ifelse(method ==
+  "CD", 1000, N * 10), eps = 1e-04, inner_eps = 0.01, verbose = FALSE,
+  stepSize = NULL, stepSizeAdjustment = NULL, batchSize = 1,
+  samplingProbabilities = NULL, method = c("CD", "GD", "SGD", "SVRG",
+  "SAG"), nfolds = 10, nfits = nfolds, nCores = 1, trace = c("none",
+  "param", "fVal", "all"))
 }
 \arguments{
 \item{X}{Input matrix; each row is an observation. Can be a matrix or a sparse matrix.}
@@ -37,11 +40,23 @@ cv.grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
 
 \item{verbose}{A logical value. if TRUE, the function prints out the fitting process.}
 
+\item{stepSize}{A step size for gradient-based optimization. if NULL, a step size is taken to be stepSizeAdj/mean(Li) where Li is a Lipschitz constant for ith sample}
+
+\item{stepSizeAdjustment}{A step size adjustment. By default, adjustment is 1 for GD and SGD, 1/8 for SVRG and 1/16 for SAG.}
+
+\item{batchSize}{A batch size. Default is 1.}
+
+\item{samplingProbabilities}{sampling probabilities for each of samples for stochastic gradient-based optimization. if NULL, each sample is chosen proportionally to Li.}
+
+\item{method}{Optimization method. Default is Coordinate Descent. CD for Coordinate Descent, GD for Gradient Descent, SGD for Stochastic Gradient Descent, SVRG for Stochastic Variance Reduction Gradient, SAG for Stochastic Averageing Gradient.}
+
 \item{nfolds}{Number of cross-validation folds to be created.}
 
 \item{nfits}{Number of cross-validation models which will be fitted. Default is to fit the model for each of the cross-validation fold.}
 
-\item{nCores}{Number of OpenMP threads to be used for parallel computing. If nCores=0, it is set to be the number of processors available. Default value is 1.}
+\item{nCores}{Number of threads to be used for parallel computing. If nCores=0, it is set to be (the number of processors available-1) . Default value is 1.}
+
+\item{trace}{An option for saving intermediate quantities when fitting a full dataset.}
 }
 \value{
 cvm Mean cross-validation error

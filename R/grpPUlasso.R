@@ -20,17 +20,17 @@
 #'@param inner_eps Convergence threshold for the inner loop. The algorithm iterates until the maximum change in coefficients is less than eps in the inner loop.
 #'@param verbose A logical value. if TRUE, the function prints out the fitting process.
 #'@param stepSize A step size for gradient-based optimization. if NULL, a step size is taken to be stepSizeAdj/mean(Li) where Li is a Lipschitz constant for ith sample
-#'@param stepSizeAdj A step size adjustment. By default, adjustment is 1 for GD and SGD, 1/8 for SVRG and 1/16 for SAG.
-#'@param bachSize A batch size. Default is 1.
+#'@param stepSizeAdjustment A step size adjustment. By default, adjustment is 1 for GD and SGD, 1/8 for SVRG and 1/16 for SAG.
+#'@param batchSize A batch size. Default is 1.
 #'@param samplingProbabilities sampling probabilities for each of samples for stochastic gradient-based optimization. if NULL, each sample is chosen proportionally to Li.
 #'@param method Optimization method. Default is Coordinate Descent. CD for Coordinate Descent, GD for Gradient Descent, SGD for Stochastic Gradient Descent, SVRG for Stochastic Variance Reduction Gradient, SAG for Stochastic Averageing Gradient.
-#'@param trace A logical value. if TRUE, all intermediate objective function values at each MM update are saved.
+#'@param trace An option for saving intermediate quantities. All intermediate standardized-scale parameter estimates(trace=="param"), objective function values at each iteration(trace=="fVal"), or both(trace=="all") are saved in optResult. Since this is computationally very heavy, it should be only used for decently small-sized dataset and small maxit. A default is "none".
 #'@return coef A p by length(lambda) matrix of coefficients
 #'@return std_coef A p by length(lambda) matrix of coefficients in a standardized scale
 #'@return lambda The actual sequence of lambda values used.
 #'@return nullDev Null deviance defined to be 2*(logLik_sat -logLik_null)
 #'@return deviance Deviance defined to be 2*(logLik_sat -logLik(model))
-#'@return optResult A list containing the result of the optimization. fValues, subGradients contain objective function values and subgradient vectors at each lambda value. If trace = TRUE, all intermediate function values are also saved in all_fValues.
+#'@return optResult A list containing the result of the optimization. fValues, subGradients contain objective function values and subgradient vectors at each lambda value. If trace = TRUE, corresponding intermediate quantities are saved as well.
 #'@return iters Number of iterations(EM updates) if method = "CD". Number of steps taken otherwise.
 #'@examples
 #'data("simulPU")
@@ -39,10 +39,10 @@
 #'
 grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                 penalty=NULL,lambda=NULL, nlambda = 100, 
-                lambdaMinRatio=ifelse(N < p, 0.05, 0.005),maxit=100000,
+                lambdaMinRatio=ifelse(N < p, 0.05, 0.005),maxit=ifelse(method=="CD",1000,N*10),
                 eps=1e-04,inner_eps = 1e-02, 
                 verbose = FALSE, stepSize=NULL, stepSizeAdjustment = NULL, batchSize=1, 
-                samplingProbabilities=NULL, method=c("CD","GD","SGD","SVRG","SAG"),trace=FALSE)
+                samplingProbabilities=NULL, method=c("CD","GD","SGD","SVRG","SAG"),trace=c("none","param","fVal","all"))
 {
   if(is.null(dim(X))){stop("not a valid X")}
     group0 <- group
@@ -53,6 +53,7 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     }
     if(is.null(colnames(X))){colnames(X) <- paste("V",1:ncol(X),sep = "")}
     X_lu <- X[order(z,decreasing = T),order(group),drop=F] # Copy of X, namely X_lu, is created
+    remove(X) # Now delete original copy to save some memory
     group0 <- group0[order(group)]
     group <- group[order(group)]
     z_lu <- z[order(z,decreasing = T)]
@@ -70,6 +71,9 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     
     #input checks
     method = match.arg(method,choices=c("CD","GD","SGD","SVRG","SAG"))
+    trace = match.arg(trace,choices=c("none","param","fVal","all"))
+    trace = switch(trace,"none"=0,"param"=1,"fVal"=2,"all"=3)
+    
     if(length(z_lu)!=N){stop("nrow(X) should be the same as length(z)")}
     if(length(group)!=p){stop("lenght(group) should be the same as ncol(X)")}
     if(!all(group==sort(group))){stop("columns must be in order")}
@@ -158,36 +162,87 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     std_coef <- g$std_coef
     colnames(std_coef) <-  paste("l",1:length(g$lambda),sep = "")
     rownames(std_coef) <- c("(Intercept)",paste("group",group0))
+  
+    if(method=="CD"){iters = g$nUpdates
+    }else{iters=g$iters}
     
-    widx<-which(g$convFlag==1)
-    if(length(widx)>0){
-      for(i in 1:length(widx)){
-        warning(paste("convergence failed at ",widx[i],"th lambda, ", g$iters[widx[i]],"th iterations",sep=""))
+    if(trace==1){
+      std_coef_all= list()
+      for(k in 1:length(g$lambda)){
+        std_coef_all[[k]] <- g$beta_all[((k-1)*(p+1)+1):(k*(p+1)),1:(iters[k]+1)]
+        rownames(std_coef_all[[k]]) <- rownames(std_coef)
+        colnames(std_coef_all[[k]]) <- 1:(iters[k]+1)
       }
+      names(std_coef_all) <- paste("lambda",1:length(g$lambda),sep="")
+    } else if(trace==2){
+      fVals_all = g$fVals_all[1:max(iters),,drop=F]
+    } else if(trace==3) {
+      std_coef_all= list()
+      for(k in 1:length(g$lambda)){
+        std_coef_all[[k]] <- g$beta_all[((k-1)*(p+1)+1):(k*(p+1)),1:(iters[k]+1)]
+        rownames(std_coef_all[[k]]) <- rownames(std_coef)
+        colnames(std_coef_all[[k]]) <- 1:(iters[k]+1)
+      }
+      names(std_coef_all) <- paste("lambda",1:length(g$lambda),sep="")
+      
+      fVals_all = g$fVals_all[1:max(iters),,drop=F]
+      
     }
     
     if(method=="CD"){
-      iters = g$nUpdates+1
-      if(!trace){
-        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads)
+      if(trace==0){
+        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads,maxit=maxit)
+      }else if(trace==1){
+        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads, std_coef_all = std_coef_all,maxit=maxit)
+      }else if(trace==2){
+        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads, fValues_all = fVals_all, maxit=maxit)
+      }else if(trace==3){
+        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads, std_coef_all = std_coef_all, fValues_all = fVals_all,maxit=maxit)
       }else{
-        fVals_all = g$fVals_all[1:max(iters),,drop=F]
-        for(k in 1:ncol(fVals_all)){fVals_all[-(1:iters[k]),k]=NA}
-        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads, all_fValues = fVals_all)}
+          stop("optResult error")
+        }
+      
     }else{ #if not CD,
-      iters=g$iters
-      if(!trace){
+      
+      if(trace==0){
         optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads,
-                        stepSize=g$stepSize,samplingProbabilities=g$samplingProbabilities/sum(g$samplingProbabilities))
+                        stepSize=g$stepSize,samplingProbabilities=g$samplingProbabilities,maxit=maxit)
+      }else if(trace==1){
+        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads,
+                        stepSize=g$stepSize,samplingProbabilities=g$samplingProbabilities,
+                        std_coef_all = std_coef_all,maxit=maxit)
+      }else if(trace==2){
+        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads,
+                        stepSize=g$stepSize,samplingProbabilities=g$samplingProbabilities,
+                        fValues_all = fVals_all,maxit=maxit)
+      }else if(trace==3){
+        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads,
+                        stepSize=g$stepSize,samplingProbabilities=g$samplingProbabilities,
+                        std_coef_all = std_coef_all,fValues_all = fVals_all,maxit=maxit)
+        
       }else{
-        fVals_all = g$fVals_all[1:max(iters),,drop=F]
-        for(k in 1:ncol(fVals_all)){fVals_all[-(1:iters[k]),k]=NA}
-        optResult<-list(method=method,fValues=g$fVals,subGradients=g$subgrads,
-                        stepSize=g$stepSize,samplingProbabilities=g$samplingProbabilities/sum(g$samplingProbabilities),
-                        all_fValues = fVals_all)
+        stop("optResult error")
       }
     }
     
+    # warning
+    if(method %in% c("CD","GD")){
+      widx<-which(g$convFlag==1)
+      if(length(widx)>0){
+        for(i in 1:length(widx)){
+          warning(paste("convergence failed at ",widx[i],"th lambda, ", iters[widx[i]],"th iterations",sep=""))
+        }
+      }
+    }else{
+      if(verbose){
+        widx<-which(g$convFlag==0)
+        if(length(widx)>0){
+          for(i in 1:length(widx)){
+            print(paste("|param.diff| < eps at ",widx[i],"th lambda, ", iters[widx[i]],"th iterations",sep=""))
+          }
+        }
+      }
+    }
   
     result <- structure(list(coef = coef, std_coef = std_coef, lambda=g$lambda,
                              nullDev=g$nullDev,deviance=g$deviance,optResult=optResult,

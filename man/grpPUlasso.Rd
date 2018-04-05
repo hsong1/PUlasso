@@ -6,10 +6,11 @@
 \usage{
 grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
   penalty = NULL, lambda = NULL, nlambda = 100,
-  lambdaMinRatio = ifelse(N < p, 0.05, 0.005), maxit = 1e+05, eps = 1e-04,
-  inner_eps = 0.01, verbose = FALSE, stepSize = NULL,
-  stepSizeAdjustment = NULL, batchSize = 1, samplingProbabilities = NULL,
-  method = c("CD", "GD", "SGD", "SVRG", "SAG"), trace = FALSE)
+  lambdaMinRatio = ifelse(N < p, 0.05, 0.005), maxit = ifelse(method ==
+  "CD", 1000, N * 10), eps = 1e-04, inner_eps = 0.01, verbose = FALSE,
+  stepSize = NULL, stepSizeAdjustment = NULL, batchSize = 1,
+  samplingProbabilities = NULL, method = c("CD", "GD", "SGD", "SVRG",
+  "SAG"), trace = c("none", "param", "fVal", "all"))
 }
 \arguments{
 \item{X}{Input matrix; each row is an observation. Can be a matrix or a sparse matrix.}
@@ -36,17 +37,19 @@ grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
 
 \item{inner_eps}{Convergence threshold for the inner loop. The algorithm iterates until the maximum change in coefficients is less than eps in the inner loop.}
 
-\item{verbose}{a logical value. if TRUE, the function prints out the fitting process.}
+\item{verbose}{A logical value. if TRUE, the function prints out the fitting process.}
 
-\item{stepSize}{a step size for gradient-based optimization. if NULL, a step size is taken to be stepSizeAdj/mean(Li) where Li is a Lipschitz constant for ith sample}
+\item{stepSize}{A step size for gradient-based optimization. if NULL, a step size is taken to be stepSizeAdj/mean(Li) where Li is a Lipschitz constant for ith sample}
+
+\item{stepSizeAdjustment}{A step size adjustment. By default, adjustment is 1 for GD and SGD, 1/8 for SVRG and 1/16 for SAG.}
+
+\item{batchSize}{A batch size. Default is 1.}
 
 \item{samplingProbabilities}{sampling probabilities for each of samples for stochastic gradient-based optimization. if NULL, each sample is chosen proportionally to Li.}
 
-\item{trace}{a logical value. if TRUE, all intermediate objective function values at each MM update are saved.}
+\item{method}{Optimization method. Default is Coordinate Descent. CD for Coordinate Descent, GD for Gradient Descent, SGD for Stochastic Gradient Descent, SVRG for Stochastic Variance Reduction Gradient, SAG for Stochastic Averageing Gradient.}
 
-\item{stepSizeAdj}{a step size adjustment. By default, adjustment is 1 for GD and SGD, 1/8 for SVRG and 1/16 for SAG.}
-
-\item{bachSize}{a batch size. Default is 1.}
+\item{trace}{An option for saving intermediate quantities. All intermediate standardized-scale parameter estimates(trace=="param"), objective function values at each iteration(trace=="fVal"), or both(trace=="all") are saved in optResult. Since this is computationally very heavy, it should be only used for decently small-sized dataset and small maxit. A default is "none".}
 }
 \value{
 coef A p by length(lambda) matrix of coefficients
@@ -59,9 +62,9 @@ nullDev Null deviance defined to be 2*(logLik_sat -logLik_null)
 
 deviance Deviance defined to be 2*(logLik_sat -logLik(model))
 
-optResult a list containing the result of the optimization. fValues, subGradients contain objective function values and subgradient vectors at each lambda value. If trace = TRUE, all intermediate function values are also saved in all_fValues.
+optResult A list containing the result of the optimization. fValues, subGradients contain objective function values and subgradient vectors at each lambda value. If trace = TRUE, corresponding intermediate quantities are saved as well.
 
-iters number of iterations(EM updates)
+iters Number of iterations(EM updates) if method = "CD". Number of steps taken otherwise.
 }
 \description{
 Fit a model using PUlasso algorithm over a regularization path. The regularization path is computed at a grid of values for the regularization parameter lambda.

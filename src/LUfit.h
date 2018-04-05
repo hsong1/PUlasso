@@ -74,6 +74,7 @@ protected:
     VectorXd fVals;//function values
     MatrixXd subgrads;//generalized gradients
     MatrixXd fVals_all;//all function values
+    MatrixXd beta_all;
     
     //private functions
     VectorXd convert_mu(const VectorXd & beta);
@@ -89,7 +90,7 @@ protected:
     ArrayXd lambda_b(int k, const ArrayXd & pen);
     
 public:
-    LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,double pi_, int maxit_, double tol_, double inner_tol_,bool useStrongSet_,bool verbose_, bool trace_);
+    LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,double pi_, int maxit_, double tol_, double inner_tol_,bool useStrongSet_,bool verbose_, int trace_);
     
     void LUfit_main();
     using groupLassoFit<TX>::computeLambdaSequence;
@@ -102,7 +103,8 @@ public:
     VectorXd getDeviances();
     VectorXd getfVals();
     MatrixXd getSubGradients();
-    MatrixXd getfVals_all();
+    SparseMatrix<double> getfVals_all();
+    SparseMatrix<double> getbeta_all();
     using groupLassoFit<TX>::back_to_org;
     using groupLassoFit<TX>::org_to_std;
     using groupLassoFit<TX>::decenterX;

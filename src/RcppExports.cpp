@@ -7,7 +7,7 @@
 using namespace Rcpp;
 
 // LU_dense_cpp
-Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd& z_, Eigen::VectorXd& icoef_, Eigen::ArrayXd& gsize_, Eigen::ArrayXd& pen_, Eigen::ArrayXd& lambdaseq_, bool user_lambdaseq_, int pathLength_, double lambdaMinRatio_, double pi_, int maxit_, double tol_, double inner_tol_, bool useStrongSet_, bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, std::vector<double> samplingProbabilities_, bool useLipschitz_, std::string method_, bool trace_);
+Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd& z_, Eigen::VectorXd& icoef_, Eigen::ArrayXd& gsize_, Eigen::ArrayXd& pen_, Eigen::ArrayXd& lambdaseq_, bool user_lambdaseq_, int pathLength_, double lambdaMinRatio_, double pi_, int maxit_, double tol_, double inner_tol_, bool useStrongSet_, bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, std::vector<double> samplingProbabilities_, bool useLipschitz_, std::string method_, int trace_);
 RcppExport SEXP _PUlasso_LU_dense_cpp(SEXP X_SEXP, SEXP z_SEXP, SEXP icoef_SEXP, SEXP gsize_SEXP, SEXP pen_SEXP, SEXP lambdaseq_SEXP, SEXP user_lambdaseq_SEXP, SEXP pathLength_SEXP, SEXP lambdaMinRatio_SEXP, SEXP pi_SEXP, SEXP maxit_SEXP, SEXP tol_SEXP, SEXP inner_tol_SEXP, SEXP useStrongSet_SEXP, SEXP verbose_SEXP, SEXP stepSize_SEXP, SEXP stepSizeAdj_SEXP, SEXP batchSize_SEXP, SEXP samplingProbabilities_SEXP, SEXP useLipschitz_SEXP, SEXP method_SEXP, SEXP trace_SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -33,13 +33,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::vector<double> >::type samplingProbabilities_(samplingProbabilities_SEXP);
     Rcpp::traits::input_parameter< bool >::type useLipschitz_(useLipschitz_SEXP);
     Rcpp::traits::input_parameter< std::string >::type method_(method_SEXP);
-    Rcpp::traits::input_parameter< bool >::type trace_(trace_SEXP);
+    Rcpp::traits::input_parameter< int >::type trace_(trace_SEXP);
     rcpp_result_gen = Rcpp::wrap(LU_dense_cpp(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, stepSize_, stepSizeAdj_, batchSize_, samplingProbabilities_, useLipschitz_, method_, trace_));
     return rcpp_result_gen;
 END_RCPP
 }
 // LU_sparse_cpp
-Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double>& X_, Eigen::VectorXd& z_, Eigen::VectorXd& icoef_, Eigen::ArrayXd& gsize_, Eigen::ArrayXd& pen_, Eigen::ArrayXd& lambdaseq_, bool user_lambdaseq_, int pathLength_, double lambdaMinRatio_, double pi_, int maxit_, double tol_, double inner_tol_, bool useStrongSet_, bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, std::vector<double> samplingProbabilities_, bool useLipschitz_, std::string method_, bool trace_);
+Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double>& X_, Eigen::VectorXd& z_, Eigen::VectorXd& icoef_, Eigen::ArrayXd& gsize_, Eigen::ArrayXd& pen_, Eigen::ArrayXd& lambdaseq_, bool user_lambdaseq_, int pathLength_, double lambdaMinRatio_, double pi_, int maxit_, double tol_, double inner_tol_, bool useStrongSet_, bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, std::vector<double> samplingProbabilities_, bool useLipschitz_, std::string method_, int trace_);
 RcppExport SEXP _PUlasso_LU_sparse_cpp(SEXP X_SEXP, SEXP z_SEXP, SEXP icoef_SEXP, SEXP gsize_SEXP, SEXP pen_SEXP, SEXP lambdaseq_SEXP, SEXP user_lambdaseq_SEXP, SEXP pathLength_SEXP, SEXP lambdaMinRatio_SEXP, SEXP pi_SEXP, SEXP maxit_SEXP, SEXP tol_SEXP, SEXP inner_tol_SEXP, SEXP useStrongSet_SEXP, SEXP verbose_SEXP, SEXP stepSize_SEXP, SEXP stepSizeAdj_SEXP, SEXP batchSize_SEXP, SEXP samplingProbabilities_SEXP, SEXP useLipschitz_SEXP, SEXP method_SEXP, SEXP trace_SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -65,64 +65,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::vector<double> >::type samplingProbabilities_(samplingProbabilities_SEXP);
     Rcpp::traits::input_parameter< bool >::type useLipschitz_(useLipschitz_SEXP);
     Rcpp::traits::input_parameter< std::string >::type method_(method_SEXP);
-    Rcpp::traits::input_parameter< bool >::type trace_(trace_SEXP);
+    Rcpp::traits::input_parameter< int >::type trace_(trace_SEXP);
     rcpp_result_gen = Rcpp::wrap(LU_sparse_cpp(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, stepSize_, stepSizeAdj_, batchSize_, samplingProbabilities_, useLipschitz_, method_, trace_));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cv_LU_dense_cpp
-Rcpp::List cv_LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd& z_, Eigen::VectorXd& icoef_, Eigen::ArrayXd& gsize_, Eigen::ArrayXd& pen_, Eigen::ArrayXd& lambdaseq_, bool user_lambdaseq_, int pathLength_, double lambdaMinRatio_, double pi_, int maxit_, double tol_, double inner_tol_, bool useStrongSet_, bool verbose_, int nfolds_, int nfits_, int ncores_);
-RcppExport SEXP _PUlasso_cv_LU_dense_cpp(SEXP X_SEXP, SEXP z_SEXP, SEXP icoef_SEXP, SEXP gsize_SEXP, SEXP pen_SEXP, SEXP lambdaseq_SEXP, SEXP user_lambdaseq_SEXP, SEXP pathLength_SEXP, SEXP lambdaMinRatio_SEXP, SEXP pi_SEXP, SEXP maxit_SEXP, SEXP tol_SEXP, SEXP inner_tol_SEXP, SEXP useStrongSet_SEXP, SEXP verbose_SEXP, SEXP nfolds_SEXP, SEXP nfits_SEXP, SEXP ncores_SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type X_(X_SEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type z_(z_SEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type icoef_(icoef_SEXP);
-    Rcpp::traits::input_parameter< Eigen::ArrayXd& >::type gsize_(gsize_SEXP);
-    Rcpp::traits::input_parameter< Eigen::ArrayXd& >::type pen_(pen_SEXP);
-    Rcpp::traits::input_parameter< Eigen::ArrayXd& >::type lambdaseq_(lambdaseq_SEXP);
-    Rcpp::traits::input_parameter< bool >::type user_lambdaseq_(user_lambdaseq_SEXP);
-    Rcpp::traits::input_parameter< int >::type pathLength_(pathLength_SEXP);
-    Rcpp::traits::input_parameter< double >::type lambdaMinRatio_(lambdaMinRatio_SEXP);
-    Rcpp::traits::input_parameter< double >::type pi_(pi_SEXP);
-    Rcpp::traits::input_parameter< int >::type maxit_(maxit_SEXP);
-    Rcpp::traits::input_parameter< double >::type tol_(tol_SEXP);
-    Rcpp::traits::input_parameter< double >::type inner_tol_(inner_tol_SEXP);
-    Rcpp::traits::input_parameter< bool >::type useStrongSet_(useStrongSet_SEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose_(verbose_SEXP);
-    Rcpp::traits::input_parameter< int >::type nfolds_(nfolds_SEXP);
-    Rcpp::traits::input_parameter< int >::type nfits_(nfits_SEXP);
-    Rcpp::traits::input_parameter< int >::type ncores_(ncores_SEXP);
-    rcpp_result_gen = Rcpp::wrap(cv_LU_dense_cpp(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, nfolds_, nfits_, ncores_));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cv_LU_sparse_cpp
-Rcpp::List cv_LU_sparse_cpp(Eigen::SparseMatrix<double>& X_, Eigen::VectorXd& z_, Eigen::VectorXd& icoef_, Eigen::ArrayXd& gsize_, Eigen::ArrayXd& pen_, Eigen::ArrayXd& lambdaseq_, bool user_lambdaseq_, int pathLength_, double lambdaMinRatio_, double pi_, int maxit_, double tol_, double inner_tol_, bool useStrongSet_, bool verbose_, int nfolds_, int nfits_, int ncores_);
-RcppExport SEXP _PUlasso_cv_LU_sparse_cpp(SEXP X_SEXP, SEXP z_SEXP, SEXP icoef_SEXP, SEXP gsize_SEXP, SEXP pen_SEXP, SEXP lambdaseq_SEXP, SEXP user_lambdaseq_SEXP, SEXP pathLength_SEXP, SEXP lambdaMinRatio_SEXP, SEXP pi_SEXP, SEXP maxit_SEXP, SEXP tol_SEXP, SEXP inner_tol_SEXP, SEXP useStrongSet_SEXP, SEXP verbose_SEXP, SEXP nfolds_SEXP, SEXP nfits_SEXP, SEXP ncores_SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double>& >::type X_(X_SEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type z_(z_SEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type icoef_(icoef_SEXP);
-    Rcpp::traits::input_parameter< Eigen::ArrayXd& >::type gsize_(gsize_SEXP);
-    Rcpp::traits::input_parameter< Eigen::ArrayXd& >::type pen_(pen_SEXP);
-    Rcpp::traits::input_parameter< Eigen::ArrayXd& >::type lambdaseq_(lambdaseq_SEXP);
-    Rcpp::traits::input_parameter< bool >::type user_lambdaseq_(user_lambdaseq_SEXP);
-    Rcpp::traits::input_parameter< int >::type pathLength_(pathLength_SEXP);
-    Rcpp::traits::input_parameter< double >::type lambdaMinRatio_(lambdaMinRatio_SEXP);
-    Rcpp::traits::input_parameter< double >::type pi_(pi_SEXP);
-    Rcpp::traits::input_parameter< int >::type maxit_(maxit_SEXP);
-    Rcpp::traits::input_parameter< double >::type tol_(tol_SEXP);
-    Rcpp::traits::input_parameter< double >::type inner_tol_(inner_tol_SEXP);
-    Rcpp::traits::input_parameter< bool >::type useStrongSet_(useStrongSet_SEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose_(verbose_SEXP);
-    Rcpp::traits::input_parameter< int >::type nfolds_(nfolds_SEXP);
-    Rcpp::traits::input_parameter< int >::type nfits_(nfits_SEXP);
-    Rcpp::traits::input_parameter< int >::type ncores_(ncores_SEXP);
-    rcpp_result_gen = Rcpp::wrap(cv_LU_sparse_cpp(X_, z_, icoef_, gsize_, pen_, lambdaseq_, user_lambdaseq_, pathLength_, lambdaMinRatio_, pi_, maxit_, tol_, inner_tol_, useStrongSet_, verbose_, nfolds_, nfits_, ncores_));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -158,8 +102,6 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_PUlasso_LU_dense_cpp", (DL_FUNC) &_PUlasso_LU_dense_cpp, 22},
     {"_PUlasso_LU_sparse_cpp", (DL_FUNC) &_PUlasso_LU_sparse_cpp, 22},
-    {"_PUlasso_cv_LU_dense_cpp", (DL_FUNC) &_PUlasso_cv_LU_dense_cpp, 18},
-    {"_PUlasso_cv_LU_sparse_cpp", (DL_FUNC) &_PUlasso_cv_LU_sparse_cpp, 18},
     {"_PUlasso_deviances_dense_cpp", (DL_FUNC) &_PUlasso_deviances_dense_cpp, 4},
     {"_PUlasso_deviances_sparse_cpp", (DL_FUNC) &_PUlasso_deviances_sparse_cpp, 4},
     {NULL, NULL, 0}

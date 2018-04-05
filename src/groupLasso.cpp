@@ -3,7 +3,7 @@ using namespace Eigen;
 
 //Constructor
 template <class TX>
-groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,int maxit_, double tol_, bool verbose_, bool trace_)
+groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,int maxit_, double tol_, bool verbose_, int trace_)
   :X(X_),y(y_), gsize(gsize_), pen(pen_),lambdaseq(lambdaseq_), isUserLambdaseq(isUserLambdaseq_),pathLength(pathLength_),lambdaMinRatio(lambdaMinRatio_),maxit(maxit_), tol(tol_),verbose(verbose_),trace(trace_), iter(0),resid(y_),converged_CD(false),converged_KKT(false)
 {
 
@@ -29,7 +29,7 @@ groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, Arra
     
   Xcenter = VectorXd::Ones(p-1);
   Rinvs.resize(J);
- // if(verbose){Rcout<<"QR decompositions\n";}
+ //if(verbose){Rcpp::Rcout<<"QR decompositions\n";}
   Rinvs_X();
   
   //Initialize beta
@@ -295,14 +295,6 @@ bool groupLassoFit<TX>::quadraticBCD(VectorXd & resid, const ArrayXd & lambda_k,
   {
     while(iter<maxit)
     {
-      if(verbose)
-      {
-        if(iter % 10000==0&&iter!=0)
-        {
-          if(verbose){Rcout<<"current iter = "<<iter<<endl;}
-        }
-        
-      }
       //BCD in active set
       blockCoordinateDescent(resid, lambda_k, tol);
       //KKT in strong set

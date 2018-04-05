@@ -11,8 +11,6 @@
 
 using namespace Eigen;
 using namespace std;
-using namespace Rcpp;
-
 template <class TX>
 class groupLassoFit
 {
@@ -29,7 +27,7 @@ protected:
     int maxit;
     double tol;
     bool verbose;
-    bool trace;
+    int trace;
     
     //
     int iter;// current iterations
@@ -65,7 +63,7 @@ protected:
     //These constructors will be called only from derived classes
     groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,
                   ArrayXd & lambdaseq_,bool isUserLambdaseq_,  int pathLength_,
-                  double lambdaMinRatio_,int maxit_, double tol_, bool verbose_, bool trace_);
+                  double lambdaMinRatio_,int maxit_, double tol_, bool verbose_, int trace_);
     ~groupLassoFit(){decenterX();};
     void Rinvs_X();
     VectorXd linpred(const VectorXd & beta);

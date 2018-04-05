@@ -2,7 +2,7 @@
 #define pgLUfit_h
 #include "pgGroupLasso.h"
 #include "sgd.h"
-#include "Rcpp.h"
+
 // #include <random>
 using namespace Eigen;
 using namespace std;
@@ -61,6 +61,7 @@ protected:
     VectorXd fVals;
     MatrixXd subgrads;
     MatrixXd fVals_all;
+    MatrixXd beta_all;
     VectorXd L;
 //
 
@@ -68,7 +69,7 @@ protected:
     double evalDev(const VectorXd & lpred);
     
 public:
-    pgLUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,bool trace_);
+    pgLUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,int trace_);
    
     void pgLUfit_main();
     using pgGroupLassoFit<TX>::computeLambdaSequence;
@@ -79,7 +80,8 @@ public:
     double getnullDev();
     VectorXd getDeviances();
     VectorXd getfVals();
-    MatrixXd getfVals_all();
+    SparseMatrix<double> getfVals_all();
+    SparseMatrix<double> getbeta_all();
     MatrixXd getSubGradients();
     double getStepSize();
     std::vector<double> getSamplingProbabilities();
