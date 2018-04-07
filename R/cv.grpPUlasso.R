@@ -26,6 +26,7 @@
 #'@param stepSize A step size for gradient-based optimization. if NULL, a step size is taken to be stepSizeAdj/mean(Li) where Li is a Lipschitz constant for ith sample
 #'@param stepSizeAdjustment A step size adjustment. By default, adjustment is 1 for GD and SGD, 1/8 for SVRG and 1/16 for SAG.
 #'@param batchSize A batch size. Default is 1.
+#'@param updateFrequency An update frequency of full gradient for method =="SVRG"
 #'@param samplingProbabilities sampling probabilities for each of samples for stochastic gradient-based optimization. if NULL, each sample is chosen proportionally to Li.
 #'@param method Optimization method. Default is Coordinate Descent. CD for Coordinate Descent, GD for Gradient Descent, SGD for Stochastic Gradient Descent, SVRG for Stochastic Variance Reduction Gradient, SAG for Stochastic Averageing Gradient.
 #'@param trace An option for saving intermediate quantities when fitting a full dataset.
@@ -49,11 +50,12 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                          penalty=NULL,lambda=NULL, nlambda = 100, 
                          lambdaMinRatio=ifelse(N < p, 0.05, 0.005),maxit=ifelse(method=="CD",1000,N*10),
                          eps=1e-04,inner_eps = 1e-02, 
-                         verbose = FALSE, stepSize=NULL, stepSizeAdjustment = NULL, batchSize=1, 
+                         verbose = FALSE, stepSize=NULL, stepSizeAdjustment = NULL, batchSize=1, updateFrequency = N,
                          samplingProbabilities=NULL, method=c("CD","GD","SGD","SVRG","SAG"),
                          nfolds=10,nfits=nfolds,nCores=1,trace=c("none","param","fVal","all"))
 {
   if(is.null(dim(X))){stop("not a valid X")}
+  if(nrow(X)!=length(z)){stop("nrow(X) must be same as length(z)")}
   group0 <- group
   if(!is.numeric(group)){
     group <-  as.factor(group)
@@ -148,20 +150,20 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     }
   }else{adj = stepSizeAdjustment}
   
-  if(verbose){print("Run grpPUlasso on full dataset")}
+  if(verbose){cat("Run grpPUlasso on full dataset\n")}
   if(!is.sparse){
     g_f<-LU_dense_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                       lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
                       lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                       inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                      verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,
+                      verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
                       samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
   }else{
     g_f<-LU_sparse_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                       lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
                       lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                       inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                      verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,
+                      verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
                       samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
   }
  
@@ -243,7 +245,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
   ############################################################################
   ## CV
   ############################################################################
-  if(verbose){print("Start Cross-Validation")}
+  if(verbose){cat("Start Cross-Validation\n")}
   # shuffle X_lu
   pl <- sample(1:nl)
   pu <- sample(1:nu)
@@ -281,7 +283,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     }
     cl <- makeCluster(nCores)
     registerDoParallel(cl)
-    if(verbose){print(paste('Cross-Validation with ',nCores, ' workers',sep=""))}
+    if(verbose){cat('Cross-Validation with',nCores, 'workers\n')}
     
     g=foreach(k = 1:nfits,
               .packages = "PUlasso",
@@ -297,14 +299,14 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                                      lambdaseq_ =PUfit$lambda,user_lambdaseq_ = FALSE,pathLength_ = nlambda,
                                      lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                                      inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                                     verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,
+                                     verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
                                      samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
                 }else{
                   g.cv<-LU_sparse_cpp(X_ = train_X,z_ = train_z,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                                       lambdaseq_ =PUfit$lambda,user_lambdaseq_ = FALSE,pathLength_ = nlambda,
                                       lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                                       inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                                      verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,
+                                      verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
                                       samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
                 }
                 return(g.cv)
@@ -313,7 +315,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
   } else {
     g=list()
     for(k in 1:nfits){
-      if(verbose){print(paste('Cross-Validation for ',k,'th dataset',sep=""))}
+      if(verbose){cat('Cross-Validation for dataset',k,'\n')}
       vlidx<-sidxl[k]:(sidxl[k]+cvsizel[k]-1)
       vuidx<-sidxl[k]:(sidxu[k]+cvsizeu[k]-1)
       train_X=rbind(X_l[-vlidx,],rbind(X_u[-vuidx,]))
@@ -323,14 +325,14 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                              lambdaseq_ =PUfit$lambda,user_lambdaseq_ = TRUE,pathLength_ = nlambda,
                              lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                              inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                             verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,
+                             verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
                              samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
       }else{
         g[[k]]<-LU_sparse_cpp(X_ = train_X,z_ = train_z,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                               lambdaseq_ =PUfit$lambda,user_lambdaseq_ = TRUE,pathLength_ = nlambda,
                               lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                               inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                              verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,
+                              verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
                               samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
       }
     }
@@ -384,7 +386,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
       widx<-which(convFlag_f==0)
       if(length(widx)>0){
         for(i in 1:length(widx)){
-          print(paste("|param.diff| < eps at ",widx[i],"th lambda, ", PUfit$iters[widx[i]],"th iterations",sep=""))
+          cat('|param.diff| < eps at',widx[i],'th lambda,',PUfit$iters[widx[i]],'th iterations\n')
         }
       }
       
@@ -392,7 +394,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
         widx<-which(convFlagMat[,j]==0) 
         if(length(widx)>0){
           for(i in 1:length(widx)){
-            print(paste("cvset",j," |param.diff| < eps at ",widx[i],"th lambda",sep=""))}}
+            cat('cvset',j,'|param.diff| < eps at',widx[i],'th lambda\n')}}
       }
     }
   }

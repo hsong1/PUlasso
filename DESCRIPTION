@@ -1,7 +1,7 @@
 Package: PUlasso
 Type: Package
 Title: High-Dimensional Variable Selection with Presence-Only Data
-Version: 3.1
+Version: 3.1.1
 Date: 2018-4-4
 Authors@R: c(person("Hyebin", "Song", role = c("aut", "cre"),
                      email = "hsong56@wisc.edu"),

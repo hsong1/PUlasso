@@ -3,8 +3,8 @@ using namespace Eigen;
 using namespace std::placeholders;
 
 template <class TX>
-pgLUfit<TX>::pgLUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,int trace_):
-pgGroupLassoFit<TX>(X_,z_,pi_,icoef_,gsize_,pen_,lambdaseq_,isUserLambdaseq_,pathLength_,lambdaMinRatio_,maxit_,tol_,verbose_,trace_),stepSize(stepSize_),stepSizeAdj(stepSizeAdj_),batchSize(batchSize_),useLipschitz(useLipschitz_),samplingProbabilities(samplingProbabilities_),method(method_)
+pgLUfit<TX>::pgLUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, int updateFreq_, std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,int trace_):
+pgGroupLassoFit<TX>(X_,z_,pi_,icoef_,gsize_,pen_,lambdaseq_,isUserLambdaseq_,pathLength_,lambdaMinRatio_,maxit_,tol_,verbose_,trace_),stepSize(stepSize_),stepSizeAdj(stepSizeAdj_),batchSize(batchSize_), updateFreq(updateFreq_), useLipschitz(useLipschitz_),samplingProbabilities(samplingProbabilities_),method(method_)
 {
     VectorXd qi;
     L.resize(N);L.setZero();
@@ -142,7 +142,7 @@ void pgLUfit<TX>::pgLUfit_main(){
                 std::tie(beta,fVal_k,subgrad_k,fVal_all_k,betaMat,iter,converged) = SGD(f,g,q,beta,samplingProbabilities,stepSizeSeq,batchSize,maxit,ST,subgradient,lambda_k,tol,trace);
                 break;
             case 3:
-                 std::tie(beta,fVal_k,subgrad_k,fVal_all_k,betaMat,iter,converged) = SVRG(f,g,q,beta,samplingProbabilities,stepSize,N,batchSize,maxit,ST,subgradient,lambda_k,tol,trace);
+                 std::tie(beta,fVal_k,subgrad_k,fVal_all_k,betaMat,iter,converged) = SVRG(f,g,q,beta,samplingProbabilities,stepSize,updateFreq,batchSize,maxit,ST,subgradient,lambda_k,tol,trace);
                 break;
             case 4:
                 std::tie(beta,fVal_k,subgrad_k,fVal_all_k,betaMat,iter,converged)= SAG(f,g,q,beta,samplingProbabilities,stepSize,batchSize,maxit,ST,subgradient,lambda_k,true,tol,trace);

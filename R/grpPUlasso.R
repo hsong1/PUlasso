@@ -22,6 +22,7 @@
 #'@param stepSize A step size for gradient-based optimization. if NULL, a step size is taken to be stepSizeAdj/mean(Li) where Li is a Lipschitz constant for ith sample
 #'@param stepSizeAdjustment A step size adjustment. By default, adjustment is 1 for GD and SGD, 1/8 for SVRG and 1/16 for SAG.
 #'@param batchSize A batch size. Default is 1.
+#'@param updateFrequency An update frequency of full gradient for method =="SVRG"
 #'@param samplingProbabilities sampling probabilities for each of samples for stochastic gradient-based optimization. if NULL, each sample is chosen proportionally to Li.
 #'@param method Optimization method. Default is Coordinate Descent. CD for Coordinate Descent, GD for Gradient Descent, SGD for Stochastic Gradient Descent, SVRG for Stochastic Variance Reduction Gradient, SAG for Stochastic Averageing Gradient.
 #'@param trace An option for saving intermediate quantities. All intermediate standardized-scale parameter estimates(trace=="param"), objective function values at each iteration(trace=="fVal"), or both(trace=="all") are saved in optResult. Since this is computationally very heavy, it should be only used for decently small-sized dataset and small maxit. A default is "none".
@@ -41,10 +42,11 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                 penalty=NULL,lambda=NULL, nlambda = 100, 
                 lambdaMinRatio=ifelse(N < p, 0.05, 0.005),maxit=ifelse(method=="CD",1000,N*10),
                 eps=1e-04,inner_eps = 1e-02, 
-                verbose = FALSE, stepSize=NULL, stepSizeAdjustment = NULL, batchSize=1, 
+                verbose = FALSE, stepSize=NULL, stepSizeAdjustment = NULL, batchSize=1, updateFrequency=N,
                 samplingProbabilities=NULL, method=c("CD","GD","SGD","SVRG","SAG"),trace=c("none","param","fVal","all"))
 {
   if(is.null(dim(X))){stop("not a valid X")}
+  if(nrow(X)!=length(z)){stop("nrow(X) must be same as length(z)")}
     group0 <- group
     if(!is.numeric(group)){
       group <-  as.factor(group)
@@ -144,14 +146,14 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                 lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
                 lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                 inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,
+                verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_=updateFrequency,
                 samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
     }else{
       g<-LU_sparse_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                       lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
                       lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                       inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
-                      verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj,batchSize_=batchSize,
+                      verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj,batchSize_=batchSize,updateFreq_=updateFrequency,
                       samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
     }
     
@@ -238,7 +240,7 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
         widx<-which(g$convFlag==0)
         if(length(widx)>0){
           for(i in 1:length(widx)){
-            print(paste("|param.diff| < eps at ",widx[i],"th lambda, ", iters[widx[i]],"th iterations",sep=""))
+           cat('|param.diff| < eps at',widx[i],'th lambda,', iters[widx[i]],'th iterations\n')
           }
         }
       }

@@ -9,8 +9,8 @@ grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
   lambdaMinRatio = ifelse(N < p, 0.05, 0.005), maxit = ifelse(method ==
   "CD", 1000, N * 10), eps = 1e-04, inner_eps = 0.01, verbose = FALSE,
   stepSize = NULL, stepSizeAdjustment = NULL, batchSize = 1,
-  samplingProbabilities = NULL, method = c("CD", "GD", "SGD", "SVRG",
-  "SAG"), trace = c("none", "param", "fVal", "all"))
+  updateFrequency = N, samplingProbabilities = NULL, method = c("CD",
+  "GD", "SGD", "SVRG", "SAG"), trace = c("none", "param", "fVal", "all"))
 }
 \arguments{
 \item{X}{Input matrix; each row is an observation. Can be a matrix or a sparse matrix.}
@@ -44,6 +44,8 @@ grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
 \item{stepSizeAdjustment}{A step size adjustment. By default, adjustment is 1 for GD and SGD, 1/8 for SVRG and 1/16 for SAG.}
 
 \item{batchSize}{A batch size. Default is 1.}
+
+\item{updateFrequency}{An update frequency of full gradient for method =="SVRG"}
 
 \item{samplingProbabilities}{sampling probabilities for each of samples for stochastic gradient-based optimization. if NULL, each sample is chosen proportionally to Li.}
 

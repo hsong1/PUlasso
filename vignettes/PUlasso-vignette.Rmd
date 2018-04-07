@@ -59,7 +59,7 @@ coef(fit, lambda=fit$lambda[30])
 If we want to predict responses at certain $x$, we use the `predict` function. By default, it returns estimated probabilities.
 
 ```{r}
-xnew = simulPU$X[c(400,500),]
+xnew = matrix(rnorm(10),2,5)
 predict(fit,newdata = xnew,lambda = fit$lambda[30])
 ```
 It is a common practice to choose $\lambda$ based on cross-validation. Main function for cross-validation is `cv.grpPUlasso`.

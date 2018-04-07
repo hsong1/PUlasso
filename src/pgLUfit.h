@@ -53,6 +53,7 @@ protected:
     double stepSize;
     double stepSizeAdj;
     int batchSize;
+    int updateFreq;
     bool useLipschitz;
     std::vector<double> samplingProbabilities;
     std::string method;
@@ -69,7 +70,7 @@ protected:
     double evalDev(const VectorXd & lpred);
     
 public:
-    pgLUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,int trace_);
+    pgLUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_, double pi_, int maxit_, double tol_,bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, int updateFreq_, std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,int trace_);
    
     void pgLUfit_main();
     using pgGroupLassoFit<TX>::computeLambdaSequence;
