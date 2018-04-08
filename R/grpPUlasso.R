@@ -93,6 +93,7 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     }
     if (is.null(lambda)) {
       if (lambdaMinRatio >= 1){stop("lambdaMinRatio should be less than 1")}
+      if (nlambda < 1){stop("nlambda should be at least 1")}
       user_lambdaseq = FALSE
       lambdaseq = c(0.1,0.01) # will not be used
     } else {

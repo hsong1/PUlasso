@@ -102,10 +102,13 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
   }
   if (is.null(lambda)) {
     if (lambdaMinRatio >= 1){stop("lambdaMinRatio should be less than 1")}
+    if (nlambda < 1){stop("nlambda should be at least 1")}
+    if (nlambda ==1){stop("More than one lambda needed for cross-validation")}
     user_lambdaseq = FALSE
     lambdaseq = c(0.1,0.01) # will not be used
   } else {
     if (any(lambda < 0)){stop("lambdas should be non-negative")}
+    if (length(lambda) ==1){stop("More than one lambda needed for cross-validation")}
     user_lambdaseq = TRUE
     lambdaseq = sort(lambda, decreasing = TRUE)
   }
@@ -283,6 +286,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     }
     cl <- makeCluster(nCores)
     registerDoParallel(cl)
+    clusterCall(cl, function(x) .libPaths(x), .libPaths())
     if(verbose){cat('Cross-Validation with',nCores, 'workers\n')}
     
     g=foreach(k = 1:nfits,
