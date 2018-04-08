@@ -15,7 +15,7 @@ using namespace Rcpp;
 using namespace Eigen;
 using Rcpp::as;
 
-//' @export
+// //' @export
 //[[Rcpp::export]]
 Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
                         Eigen::ArrayXd & gsize_,Eigen::ArrayXd & pen_,
@@ -76,7 +76,7 @@ Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Ei
   return R_NilValue;
 }
 
-//' @export
+// //' @export
 //[[Rcpp::export]]
 Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
                          Eigen::ArrayXd & gsize_,Eigen::ArrayXd & pen_,

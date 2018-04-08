@@ -320,7 +320,7 @@ VectorXd pgGroupLassoFit<TX>::gradient(const VectorXd & beta, const ArrayXi & ri
 //    cout<<"eta:"<<eta.block(0,0,1,1)<<endl;
     exp_eta= eta.array().exp();
 
-    h_eta = std::log(nl/(pi*nu))+eta.array()-exp_eta.array().log1p();//bias+eta-log(1+exp(eta))
+    h_eta = std::log(nl/(pi*nu))+eta.array()-(exp_eta.array()+1).array().log().array();//bias+eta-log(1+exp(eta))
     p_h = (-h_eta).array().exp();
     p_h = 1/(1+p_h.array());
     p1_eta = 1/(1+exp_eta.array());
