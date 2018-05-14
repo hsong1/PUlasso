@@ -40,7 +40,7 @@
 #'
 grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                 penalty=NULL,lambda=NULL, nlambda = 100, 
-                lambdaMinRatio=ifelse(N < p, 0.05, 0.005),maxit=ifelse(method=="CD",1000,N*10),
+                lambdaMinRatio=ifelse(N < p, 0.05, 0.005),maxit=ifelse(method=="CD",10000,N*10),
                 eps=1e-04,inner_eps = 1e-02, 
                 verbose = FALSE, stepSize=NULL, stepSizeAdjustment = NULL, batchSize=1, updateFrequency=N,
                 samplingProbabilities=NULL, method=c("CD","GD","SGD","SVRG","SAG"),trace=c("none","param","fVal","all"))

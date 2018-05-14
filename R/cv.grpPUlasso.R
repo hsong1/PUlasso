@@ -315,15 +315,33 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                 }
                 return(g.cv)
               }#end of foreach
+    cvdev = foreach(k=1:nfits,
+                    .packages = "PUlasso",
+                    .combine  = "cbind" )%dopar%
+                    {
+                      vlidx<-sidxl[k]:(sidxl[k]+cvsizel[k]-1)
+                      vuidx<-sidxl[k]:(sidxu[k]+cvsizeu[k]-1)
+                      
+                      test_X =rbind(X_l[vlidx,],rbind(X_u[vuidx,]))
+                      test_z = c(rep(1,cvsizel[k]),rep(0,cvsizeu[k]))
+                      
+                      cvdev<- deviances(X = test_X,z = test_z,pi = pi,coefMat = g[[k]]$coef)
+                      return(cvdev)
+                    }
+    
     
   } else {
     g=list()
+    cvdev = matrix(0,ncol=nfits,nrow=length(PUfit$lambda))
     for(k in 1:nfits){
       if(verbose){cat('Cross-Validation for dataset',k,'\n')}
       vlidx<-sidxl[k]:(sidxl[k]+cvsizel[k]-1)
       vuidx<-sidxl[k]:(sidxu[k]+cvsizeu[k]-1)
       train_X=rbind(X_l[-vlidx,],rbind(X_u[-vuidx,]))
       train_z = c(rep(1,nl-cvsizel[k]),rep(0,nu-cvsizeu[k]))
+      test_X =rbind(X_l[vlidx,],rbind(X_u[vuidx,]))
+      test_z = c(rep(1,cvsizel[k]),rep(0,cvsizeu[k]))
+      
       if(!is.sparse){
         g[[k]]<-LU_dense_cpp(X_ = train_X,z_ = train_z,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                              lambdaseq_ =PUfit$lambda,user_lambdaseq_ = TRUE,pathLength_ = nlambda,
@@ -339,6 +357,8 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                               verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
                               samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
       }
+      cvdev[,k] <- deviances(X = test_X,z = test_z,pi = pi,coefMat = g[[k]]$coef)
+      
     }
   }# End of Fitting
   # Summary
@@ -354,10 +374,13 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
   }
   names(coefmat) <- paste("cv",1:min(nfolds,nfits),sep="")
   names(std_coefmat) <- paste("cv",1:min(nfolds,nfits),sep="")
-  cvdev=sapply(g,function(x){x$deviance})
+  
+  # cvdev=sapply(g,function(x){x$deviance})
   # rownames(cvdev)=paste("l",1:length(PUfit$lambda),sep = "")
   cvm=apply(cvdev,1,mean)
   cvsd <- apply(cvdev,1,sd)/sqrt(min(nfolds,nfits))
+  names(cvm)=paste("l",1:length(PUfit$lambda),sep = "")
+  names(cvsd)=paste("l",1:length(PUfit$lambda),sep = "")
   indmin <- min(which(cvm==min(cvm)))
   lambda.min <- PUfit$lambda[indmin]
   
