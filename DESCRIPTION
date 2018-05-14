@@ -10,7 +10,7 @@ Description: Efficient algorithm for solving PU (Positive and Unlabelled) proble
 License: GPL-2
 Imports: Rcpp (>= 0.12.8), methods, Matrix, doParallel, foreach, ggplot2
 Depends: R(>= 2.10)
-LinkingTo: Rcpp, BH, RcppEigen, Matrix
+LinkingTo: Rcpp, RcppEigen, Matrix
 RoxygenNote: 6.0.1
 Suggests: testthat,
     knitr,
