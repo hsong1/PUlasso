@@ -28,7 +28,7 @@
 #'@param batchSize A batch size. Default is 1.
 #'@param updateFrequency An update frequency of full gradient for method =="SVRG"
 #'@param samplingProbabilities sampling probabilities for each of samples for stochastic gradient-based optimization. if NULL, each sample is chosen proportionally to Li.
-#'@param method Optimization method. Default is Coordinate Descent. CD for Coordinate Descent, GD for Gradient Descent, SGD for Stochastic Gradient Descent, SVRG for Stochastic Variance Reduction Gradient, SAG for Stochastic Averageing Gradient.
+#'@param method Optimization method. Default is Coordinate Descent. CD for Coordinate Descent, GD for Gradient Descent, SGD for Stochastic Gradient Descent, SVRG for Stochastic Variance Reduction Gradient, SAG for Stochastic Averaging Gradient.
 #'@param trace An option for saving intermediate quantities when fitting a full dataset.
 #'@param nfolds Number of cross-validation folds to be created.
 #'@param nfits Number of cross-validation models which will be fitted. Default is to fit the model for each of the cross-validation fold.

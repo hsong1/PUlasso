@@ -50,7 +50,7 @@ cv.grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
 
 \item{samplingProbabilities}{sampling probabilities for each of samples for stochastic gradient-based optimization. if NULL, each sample is chosen proportionally to Li.}
 
-\item{method}{Optimization method. Default is Coordinate Descent. CD for Coordinate Descent, GD for Gradient Descent, SGD for Stochastic Gradient Descent, SVRG for Stochastic Variance Reduction Gradient, SAG for Stochastic Averageing Gradient.}
+\item{method}{Optimization method. Default is Coordinate Descent. CD for Coordinate Descent, GD for Gradient Descent, SGD for Stochastic Gradient Descent, SVRG for Stochastic Variance Reduction Gradient, SAG for Stochastic Averaging Gradient.}
 
 \item{nfolds}{Number of cross-validation folds to be created.}
 
