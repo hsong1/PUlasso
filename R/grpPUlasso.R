@@ -60,7 +60,7 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     group <- group[order(group)]
     z_lu <- z[order(z,decreasing = T)]
     if(typeof(X_lu)!="double"){X_lu <- X_lu + 0.0} # Ensure type of X is double 
-    
+    remove(z)
     # Dimensions
     N <- nrow(X_lu)
     p <- ncol(X_lu)
@@ -142,20 +142,21 @@ grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
       }
     }else{adj = stepSizeAdjustment}
     
+    skip_fitting = getOption('PUlasso.skip_fitting')
     if(!is.sparse){
       g<-LU_dense_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                 lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
                 lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                 inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
                 verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_=updateFrequency,
-                samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
+                samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace,skipFitting_=skip_fitting)
     }else{
       g<-LU_sparse_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                       lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
                       lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                       inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
                       verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj,batchSize_=batchSize,updateFreq_=updateFrequency,
-                      samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
+                      samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace,skipFitting_=skip_fitting)
     }
     
     coef <-  g$coef

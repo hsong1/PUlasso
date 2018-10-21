@@ -207,16 +207,19 @@ VectorXd LUfit<TX>::evalObjectiveGrad(const VectorXd & lpred)
     for(int j=1;j<J;++j)
     {
         Xcentered_j = X.block(0,grpSIdx(j),N,gsize(j));
-        
-        for(int l=0; l<gsize(j); ++l)
-        {
+        if(!centerFlag){
+          // if X is sparse and not centered, get a centered variable
+          for(int l=0; l<gsize(j); ++l)
+          {
             Xdl = X.block(0,grpSIdx(j)+l,N,1);
             Xcentered_j.col(l) = Xdl.array()-Xcenter(grpSIdx(j)+l);
+          }
         }
+        
         Qj = Xcentered_j*Rinvs[j];
         
         for(int l=0; l<gsize(j); ++l){
-            objGrad(j+l)= (gradCoef.array()*Qj.col(l).array()).mean();
+          objGrad(j+l)= (gradCoef.array()*Qj.col(l).array()).mean();
         }
         objGrad(0) = gradCoef.mean();
     }
@@ -254,6 +257,7 @@ void LUfit<TX>::LUfit_main()
     for (int k=0;k<K;++k)
     {
         if(verbose){Rcpp::Rcout<<"Fitting "<<k<<"th lambda\n";}
+        Rcpp::checkUserInterrupt();
         iter    = 0;
         nUpdate = 0;
         qlambda_k = lambda_b(k, pen);
@@ -293,8 +297,9 @@ void LUfit<TX>::LUfit_main()
             }
             
             converged_lam = convergedQ&&(error<tol);
+            lpred_old = lpred;
             if(!converged_lam){
-                lpred_old = lpred;
+                // lpred_old = lpred;
                 updateObjFunc(lpred);
                 
                 if(k!=0){setupinactiveSets(k,resid,default_lambdaseq[0],lambdaseq, useStrongSet);};

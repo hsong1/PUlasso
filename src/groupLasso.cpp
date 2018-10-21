@@ -12,7 +12,7 @@ groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, Arra
   p = static_cast<int>(X.cols())+1;
   J = static_cast<int>(gsize.size());
   K = isUserLambdaseq?(static_cast<int>(lambdaseq.size())):(pathLength);
-  
+  centerFlag = false;
   grpSIdx=ArrayXi::Zero(J);
   
   for(int ii=2;ii<J;++ii)
@@ -322,7 +322,7 @@ void groupLassoFit<TX>::Rinvs_X()
         Xcenter(l) = X.col(l).mean();
         X.col(l) = X.col(l).array()-Xcenter(l);
     }
-    
+    centerFlag = true;
     
     for(int j=1;j<J;++j){
         int sind = grpSIdx(j);
@@ -355,6 +355,7 @@ void groupLassoFit<TX>::decenterX()
     {
         X.col(l) = X.col(l).array()+Xcenter(l);
     }
+    centerFlag = false;
 }
 
 template <class TX>

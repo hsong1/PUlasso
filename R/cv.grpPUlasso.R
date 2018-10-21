@@ -31,7 +31,7 @@
 #'@param method Optimization method. Default is Coordinate Descent. CD for Coordinate Descent, GD for Gradient Descent, SGD for Stochastic Gradient Descent, SVRG for Stochastic Variance Reduction Gradient, SAG for Stochastic Averaging Gradient.
 #'@param trace An option for saving intermediate quantities when fitting a full dataset.
 #'@param nfolds Number of cross-validation folds to be created.
-#'@param nfits Number of cross-validation models which will be fitted. Default is to fit the model for each of the cross-validation fold.
+#'@param fitInd A vector of indices of cross-validation models which will be fitted. Default is to fit the model for each of the cross-validation fold.
 #'@param nCores Number of threads to be used for parallel computing. If nCores=0, it is set to be (the number of processors available-1) . Default value is 1. 
 #'@return cvm Mean cross-validation error
 #'@return cvsd Estimate of standard error of cvm
@@ -52,7 +52,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                          eps=1e-04,inner_eps = 1e-02, 
                          verbose = FALSE, stepSize=NULL, stepSizeAdjustment = NULL, batchSize=1, updateFrequency = N,
                          samplingProbabilities=NULL, method=c("CD","GD","SGD","SVRG","SAG"),
-                         nfolds=10,nfits=nfolds,nCores=1,trace=c("none","param","fVal","all"))
+                         nfolds=10,fitInd=1:nfolds,nCores=1,trace=c("none","param","fVal","all"))
 {
   if(is.null(dim(X))){stop("not a valid X")}
   if(nrow(X)!=length(z)){stop("nrow(X) must be same as length(z)")}
@@ -69,7 +69,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
   group <- group[order(group)]
   z_lu <- z[order(z,decreasing = T)]
   if(typeof(X_lu)!="double"){X_lu <- X_lu + 0.0} # Ensure type of X is double 
-  
+  remove(z)
   # Dimensions
   N <- nrow(X_lu)
   p <- ncol(X_lu)
@@ -112,6 +112,10 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     user_lambdaseq = TRUE
     lambdaseq = sort(lambda, decreasing = TRUE)
   }
+
+  if(!any(fitInd%in%(1:nfolds))){stop("an element of fitInd should be an integer between 1 and nfolds")
+    }else{nfits= length(fitInd)}
+  if(nfits<2){stop("length(fitInd) should be at least two")}
   
   is.sparse = FALSE
   if (inherits(X_lu, "sparseMatrix")) {
@@ -153,6 +157,8 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     }
   }else{adj = stepSizeAdjustment}
   
+  
+  skip_fitting = getOption('PUlasso.skip_fitting')
   if(verbose){cat("Run grpPUlasso on full dataset\n")}
   if(!is.sparse){
     g_f<-LU_dense_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
@@ -160,14 +166,16 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
                       lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                       inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
                       verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
-                      samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
+                      samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,
+                      method_=method,trace_=trace,skipFitting_=skip_fitting)
   }else{
     g_f<-LU_sparse_cpp(X_ = X_lu,z_ = z_lu,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                       lambdaseq_ = lambdaseq,user_lambdaseq_ = user_lambdaseq,pathLength_ = nlambda,
                       lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                       inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
                       verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
-                      samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
+                      samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,
+                      method_=method,trace_=trace,skipFitting_=skip_fitting)
   }
  
   
@@ -256,8 +264,10 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
   # pu=1:nu
   X_l <- X_lu[1:nl,]
   X_u <- X_lu[(nl+1):(nl+nu),]
+  
   X_l <- X_l[pl,]
   X_u <- X_u[pu,]
+  remove(X_lu)
   
   rmrdl=nl%%nfolds
   rmrdu=nu%%nfolds
@@ -287,78 +297,86 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     cl <- makeCluster(nCores)
     registerDoParallel(cl)
     clusterCall(cl, function(x) .libPaths(x), .libPaths())
-    if(verbose){cat('Cross-Validation with',nCores, 'workers\n')}
+    if(verbose){cat('Cross-Validation with',getDoParWorkers(), 'workers\n')}
     
-    g=foreach(k = 1:nfits,
+    g=foreach(l=1:nfits,
               .packages = "PUlasso",
               .combine = list,
               .multicombine = TRUE)  %dopar%  
               {
+                k = fitInd[l]
                 vlidx<-sidxl[k]:(sidxl[k]+cvsizel[k]-1)
-                vuidx<-sidxl[k]:(sidxu[k]+cvsizeu[k]-1)
+                vuidx<-sidxu[k]:(sidxu[k]+cvsizeu[k]-1)
                 train_X=rbind(X_l[-vlidx,],rbind(X_u[-vuidx,]))
                 train_z = c(rep(1,nl-cvsizel[k]),rep(0,nu-cvsizeu[k]))
                 if(!is.sparse){
                   g.cv<-LU_dense_cpp(X_ = train_X,z_ = train_z,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
-                                     lambdaseq_ =PUfit$lambda,user_lambdaseq_ = FALSE,pathLength_ = nlambda,
+                                     lambdaseq_ =PUfit$lambda,user_lambdaseq_ = TRUE,pathLength_ = nlambda,
                                      lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                                      inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
                                      verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
-                                     samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
+                                     samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,
+                                     method_=method,trace_=trace,skipFitting_=skip_fitting)
                 }else{
                   g.cv<-LU_sparse_cpp(X_ = train_X,z_ = train_z,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
-                                      lambdaseq_ =PUfit$lambda,user_lambdaseq_ = FALSE,pathLength_ = nlambda,
+                                      lambdaseq_ =PUfit$lambda,user_lambdaseq_ = TRUE,pathLength_ = nlambda,
                                       lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                                       inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
                                       verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
-                                      samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
+                                      samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,
+                                      method_=method,trace_=trace,skipFitting_=skip_fitting)
                 }
                 return(g.cv)
               }#end of foreach
-    cvdev = foreach(k=1:nfits,
+    
+    cvdev = foreach(l=1:nfits,
                     .packages = "PUlasso",
                     .combine  = "cbind" )%dopar%
                     {
+                      k = fitInd[l]
                       vlidx<-sidxl[k]:(sidxl[k]+cvsizel[k]-1)
-                      vuidx<-sidxl[k]:(sidxu[k]+cvsizeu[k]-1)
+                      vuidx<-sidxu[k]:(sidxu[k]+cvsizeu[k]-1)
                       
                       test_X =rbind(X_l[vlidx,],rbind(X_u[vuidx,]))
                       test_z = c(rep(1,cvsizel[k]),rep(0,cvsizeu[k]))
                       
-                      cvdev<- deviances(X = test_X,z = test_z,pi = pi,coefMat = g[[k]]$coef)
+                      cvdev<- deviances(X = test_X,z = test_z,pi = pi,coefMat = g[[l]]$coef)
                       return(cvdev)
                     }
-    
+    stopCluster(cl)
     
   } else {
     g=list()
-    cvdev = matrix(0,ncol=nfits,nrow=length(PUfit$lambda))
-    for(k in 1:nfits){
+    cvdev = matrix(NA,ncol=nfits,nrow=length(PUfit$lambda))
+    for(l in 1:nfits){
+      k = fitInd[l]
       if(verbose){cat('Cross-Validation for dataset',k,'\n')}
       vlidx<-sidxl[k]:(sidxl[k]+cvsizel[k]-1)
-      vuidx<-sidxl[k]:(sidxu[k]+cvsizeu[k]-1)
+      vuidx<-sidxu[k]:(sidxu[k]+cvsizeu[k]-1)
       train_X=rbind(X_l[-vlidx,],rbind(X_u[-vuidx,]))
       train_z = c(rep(1,nl-cvsizel[k]),rep(0,nu-cvsizeu[k]))
       test_X =rbind(X_l[vlidx,],rbind(X_u[vuidx,]))
       test_z = c(rep(1,cvsizel[k]),rep(0,cvsizeu[k]))
       
       if(!is.sparse){
-        g[[k]]<-LU_dense_cpp(X_ = train_X,z_ = train_z,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
+        
+        g[[l]]<-LU_dense_cpp(X_ = train_X,z_ = train_z,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                              lambdaseq_ =PUfit$lambda,user_lambdaseq_ = TRUE,pathLength_ = nlambda,
                              lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                              inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
                              verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
-                             samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
+                             samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,
+                             method_=method,trace_=trace,skipFitting_=skip_fitting)
       }else{
-        g[[k]]<-LU_sparse_cpp(X_ = train_X,z_ = train_z,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
+        g[[l]]<-LU_sparse_cpp(X_ = train_X,z_ = train_z,icoef_ = icoef,gsize_ = gsize,pen_ = pen,
                               lambdaseq_ =PUfit$lambda,user_lambdaseq_ = TRUE,pathLength_ = nlambda,
                               lambdaMinRatio_ = lambdaMinRatio,pi_ = pi,maxit_ = maxit,tol_ = eps,
                               inner_tol_ = inner_eps,useStrongSet_=usestrongSet,
                               verbose_ = verbose, stepSize_=stepSize,stepSizeAdj_= adj, batchSize_=batchSize,updateFreq_ = updateFrequency,
-                              samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,method_=method,trace_=trace)
+                              samplingProbabilities_=samplingProbabilities,useLipschitz_=useLipschitz,
+                              method_=method,trace_=trace,skipFitting_=skip_fitting)
       }
-      cvdev[,k] <- deviances(X = test_X,z = test_z,pi = pi,coefMat = g[[k]]$coef)
-      
+      cvdev[,l] <- deviances(X = test_X,z = test_z,pi = pi,coefMat = g[[l]]$coef)
     }
   }# End of Fitting
   # Summary
@@ -369,11 +387,11 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
     std_coefmat[[i]] <- g[[i]]$std_coef
     colnames(coefmat[[i]]) <-  paste("l",1:length(PUfit$lambda),sep = "")
     colnames(std_coefmat[[i]]) <-  paste("l",1:length(PUfit$lambda),sep = "")
-    rownames(coefmat[[i]]) <- c("(Intercept)",colnames(X_lu))
+    rownames(coefmat[[i]]) <- c("(Intercept)",colnames(X_l))
     rownames(std_coefmat[[i]]) <- c("(Intercept)",paste("group",group0))
   }
-  names(coefmat) <- paste("cv",1:min(nfolds,nfits),sep="")
-  names(std_coefmat) <- paste("cv",1:min(nfolds,nfits),sep="")
+  names(coefmat) <- paste("cv",fitInd,sep="")
+  names(std_coefmat) <- paste("cv",fitInd,sep="")
   
   # cvdev=sapply(g,function(x){x$deviance})
   # rownames(cvdev)=paste("l",1:length(PUfit$lambda),sep = "")
@@ -406,7 +424,7 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
       widx<-which(convFlagMat[,j]==1) 
       if(length(widx)>0){
         for(i in 1:length(widx)){
-          warning(paste("cvset",j," convergence failed at ",widx[i],"th lambda",sep=""))}}
+          warning(paste("cvset",fitInd[j]," convergence failed at ",widx[i],"th lambda",sep=""))}}
     }
   }else{
     if(verbose){
@@ -432,6 +450,6 @@ cv.grpPUlasso <-function(X,z,pi,initial_coef=NULL,group=1:ncol(X),
   perm.ind <- list(lind=pl,uind=pu)
   result<-structure(list(cvm=cvm,cvsd=cvsd, cvcoef = coefmat, cvstdcoef = std_coefmat, lambda = PUfit$lambda, lambda.min= lambda.min,
                          lambda.1se=lambda.1se,PUfit=PUfit,perm.ind = perm.ind),class="cvPUfit")
-  if(isParallel){stopCluster(cl)}
+ 
   return(result)
 }

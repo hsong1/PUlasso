@@ -133,12 +133,15 @@ void pgLUfit<TX>::pgLUfit_main(){
         
         bool converged(false);
         if(verbose){Rcpp::Rcout<<"Fitting "<<k<<"th lambda\n";}
+        Rcpp::checkUserInterrupt();
         switch(method_int){
             case 1:
                 std::tie(beta,fVal_k,subgrad_k,fVal_all_k,betaMat,iter,converged) = GD(f,g,N,q,beta,stepSize,maxit,ST,subgradient,lambda_k,tol,trace);
                 break;
             case 2:
-                for(int i=0;i<maxit;i++){stepSizeSeq(i) = stepSize/(1.0+stepSize*lambdaseq(k)*i);}
+                for(int i=0;i<maxit;i++){
+                  // stepSizeSeq(i) = stepSize/(1.0+stepSize*lambdaseq(k)*i);}
+                stepSizeSeq(i)=stepSize;} // constant step size
                 std::tie(beta,fVal_k,subgrad_k,fVal_all_k,betaMat,iter,converged) = SGD(f,g,q,beta,samplingProbabilities,stepSizeSeq,batchSize,maxit,ST,subgradient,lambda_k,tol,trace);
                 break;
             case 3:

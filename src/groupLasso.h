@@ -42,6 +42,7 @@ protected:
     int K;
     
     //Definition Inside
+    bool centerFlag;
     ArrayXi grpSIdx;//size J
     ArrayXi iters;
     MatrixXd coefficients; //size p*k
@@ -59,6 +60,7 @@ protected:
     std::set<int> inactiveSet1;// strong and inactive set
     std::set<int> inactiveSet2;// not strong and not active
     ArrayXi convFlag;
+    
    
     //These constructors will be called only from derived classes
     groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,

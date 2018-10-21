@@ -23,7 +23,7 @@ Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Ei
                         int pathLength_,double lambdaMinRatio_, double pi_,
                         int maxit_,double tol_,double inner_tol_,
                         bool useStrongSet_, bool verbose_, double stepSize_,double stepSizeAdj_,int batchSize_,int updateFreq_,
-                        std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,int trace_)
+                        std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,int trace_,bool skipFitting_)
 {
   
   try{
@@ -33,7 +33,7 @@ Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Ei
                                              lambdaseq_,user_lambdaseq_,pathLength_,
                                              lambdaMinRatio_,pi_,maxit_,tol_,
                                              inner_tol_,useStrongSet_,verbose_,trace_);
-      lu.LUfit_main();
+      if(!skipFitting_){lu.LUfit_main();}
       return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
                                 Rcpp::Named("std_coef") = lu.getStdCoefficients(),
                                 Rcpp::Named("iters") = lu.getIters(),
@@ -52,7 +52,7 @@ Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Ei
       pgLUfit<Eigen::Map<MatrixXd> > lu(X_,z_,icoef_,gsize_,pen_,lambdaseq_,user_lambdaseq_,pathLength_,
                                         lambdaMinRatio_,pi_,maxit_,tol_,verbose_,
                                         stepSize_,stepSizeAdj_,batchSize_,updateFreq_,samplingProbabilities_,useLipschitz_,method_,trace_);
-      lu.pgLUfit_main();
+      if(!skipFitting_){lu.pgLUfit_main();}
       return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
                                 Rcpp::Named("std_coef") = lu.getStdCoefficients(),
                                 Rcpp::Named("iters") = lu.getIters(),
@@ -76,7 +76,7 @@ Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd & z_, Ei
   return R_NilValue;
 }
 
-// // ' @export
+// //' @export
 //[[Rcpp::export]]
 Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & z_, Eigen::VectorXd & icoef_,
                          Eigen::ArrayXd & gsize_,Eigen::ArrayXd & pen_,
@@ -84,7 +84,7 @@ Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & z_,
                          int pathLength_,double lambdaMinRatio_, double pi_,
                          int maxit_,double tol_,double inner_tol_,
                          bool useStrongSet_, bool verbose_,double stepSize_,double stepSizeAdj_,int batchSize_,int updateFreq_,
-                         std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,int trace_)
+                         std::vector<double> samplingProbabilities_,bool useLipschitz_,std::string method_,int trace_,bool skipFitting_)
 {
   try{
     
@@ -93,7 +93,7 @@ Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & z_,
                                              lambdaseq_,user_lambdaseq_,pathLength_,
                                              lambdaMinRatio_,pi_,maxit_,tol_,
                                              inner_tol_,useStrongSet_,verbose_,trace_);
-      lu.LUfit_main();
+      if(!skipFitting_){lu.LUfit_main();}
       return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
                                 Rcpp::Named("std_coef") = lu.getStdCoefficients(),
                                 Rcpp::Named("iters") = lu.getIters(),
@@ -112,7 +112,7 @@ Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double> & X_, Eigen::VectorXd & z_,
       pgLUfit<Eigen::SparseMatrix<double> > lu(X_,z_,icoef_,gsize_,pen_,lambdaseq_,user_lambdaseq_,pathLength_,
                                         lambdaMinRatio_,pi_,maxit_,tol_,verbose_,
                                         stepSize_,stepSizeAdj_,batchSize_,updateFreq_,samplingProbabilities_,useLipschitz_,method_,trace_);
-      lu.pgLUfit_main();
+      if(!skipFitting_){lu.pgLUfit_main();}
       return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
                                 Rcpp::Named("std_coef") = lu.getStdCoefficients(),
                                 Rcpp::Named("iters") = lu.getIters(),

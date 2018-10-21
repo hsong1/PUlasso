@@ -10,7 +10,7 @@ cv.grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
   "CD", 1000, N * 10), eps = 1e-04, inner_eps = 0.01, verbose = FALSE,
   stepSize = NULL, stepSizeAdjustment = NULL, batchSize = 1,
   updateFrequency = N, samplingProbabilities = NULL, method = c("CD",
-  "GD", "SGD", "SVRG", "SAG"), nfolds = 10, nfits = nfolds, nCores = 1,
+  "GD", "SGD", "SVRG", "SAG"), nfolds = 10, fitInd = 1:nfolds, nCores = 1,
   trace = c("none", "param", "fVal", "all"))
 }
 \arguments{
@@ -54,7 +54,7 @@ cv.grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
 
 \item{nfolds}{Number of cross-validation folds to be created.}
 
-\item{nfits}{Number of cross-validation models which will be fitted. Default is to fit the model for each of the cross-validation fold.}
+\item{fitInd}{A vector of indices of cross-validation models which will be fitted. Default is to fit the model for each of the cross-validation fold.}
 
 \item{nCores}{Number of threads to be used for parallel computing. If nCores=0, it is set to be (the number of processors available-1) . Default value is 1.}
 

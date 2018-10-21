@@ -23,6 +23,7 @@ protected:
     using groupLassoFit<TX>::trace;
     
     //Definition Inside
+    using groupLassoFit<TX>::centerFlag;
     using groupLassoFit<TX>::default_lambdaseq;
     using groupLassoFit<TX>::resid;
     using groupLassoFit<TX>::grpSIdx;//size J
