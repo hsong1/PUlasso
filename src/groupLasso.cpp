@@ -3,11 +3,24 @@ using namespace Eigen;
 
 //Constructor
 template <class TX>
-groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,int maxit_, double tol_, bool verbose_, int trace_)
-  :X(X_),y(y_), gsize(gsize_), pen(pen_),lambdaseq(lambdaseq_), isUserLambdaseq(isUserLambdaseq_),pathLength(pathLength_),lambdaMinRatio(lambdaMinRatio_),maxit(maxit_), tol(tol_),verbose(verbose_),trace(trace_), iter(0),resid(y_),converged_CD(false),converged_KKT(false)
+groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,
+                                 ArrayXd & pen_,ArrayXd & lambdaseq_,
+                                 bool isUserLambdaseq_,
+                                 int pathLength_,
+                                 double lambdaMinRatio_,
+                                 int maxit_,
+                                 VectorXd & wei_,
+                                 bool weiOption_,
+                                 double tol_,
+                                 bool verbose_,
+                                 int trace_)
+  :X(X_),y(y_), gsize(gsize_), pen(pen_),lambdaseq(lambdaseq_), isUserLambdaseq(isUserLambdaseq_),
+   pathLength(pathLength_),lambdaMinRatio(lambdaMinRatio_),maxit(maxit_),wei(wei_),weiOption(weiOption_),
+   tol(tol_),verbose(verbose_),trace(trace_), iter(0),resid(y_),converged_CD(false),converged_KKT(false)
 {
-
+  
   checkDesignMatrix(X);
+  
   N = static_cast<int>(X.rows());
   p = static_cast<int>(X.cols())+1;
   J = static_cast<int>(gsize.size());
@@ -15,8 +28,7 @@ groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, Arra
   centerFlag = false;
   grpSIdx=ArrayXi::Zero(J);
   
-  for(int ii=2;ii<J;++ii)
-  {
+  for(int ii=2;ii<J;++ii){
     grpSIdx(ii)=grpSIdx(ii-1)+gsize(ii-1);
   }
   
@@ -24,12 +36,15 @@ groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, Arra
   coefficients = MatrixXd::Zero(p, K);
   std_coefficients = MatrixXd::Zero(p, K);
   
+  //Normalize weights
+  if(weiOption){wei=(N*wei)/wei.sum();}
+  
   //Calculate Xcenter, Rinvs
   //For a dense class X, X = P0X, Sparse or Map class, no change in X
-    
+  
   Xcenter = VectorXd::Ones(p-1);
   Rinvs.resize(J);
- //if(verbose){Rcpp::Rcout<<"QR decompositions\n";}
+  //if(verbose){Rcpp::Rcout<<"QR decompositions\n";}
   Rinvs_X();
   
   //Initialize beta
@@ -110,14 +125,15 @@ VectorXd groupLassoFit<TX>::linpred(const VectorXd & beta)
 {
   VectorXd lpred(N);
   lpred.setZero();
-  lpred.setConstant(beta(0));
   
   for (int j=1; j<J; ++j)
   {
     int sind = grpSIdx(j);
     lpred+=X.block(0,sind,N,gsize(j))*(Rinvs[j]*beta.segment(sind+1,gsize(j)));
   }
-  lpred = lpred.array()-(lpred.mean()-beta(0)); //if X already centered, lpred.mean = 0
+  // beta0 + P0 (sum Qj_beta_j)
+  // if X already centered, lpred.mean = 0
+  lpred = lpred.array()-(lpred.mean()-beta(0));
   return lpred;
 }
 
@@ -126,6 +142,33 @@ VectorXd groupLassoFit<TX>::linpred_update(const VectorXd & new_resid, const Vec
 {
   return old_resid-new_resid+old_lpred;
 }
+
+//(R^{-1})'(P0Xj)'Wresid/N
+template <class TX>
+VectorXd groupLassoFit<TX>::gr(const TX & X, int j, const VectorXd & resid){
+  
+  int sind = grpSIdx(j);
+  VectorXd wresid(resid),gr;
+  
+  if(weiOption){wresid = wei.array()*resid.array();}
+  gr = Rinvs[j].adjoint()*((X.block(0,sind,N,gsize(j)).adjoint()*wresid))/N;
+  
+  return gr;
+}
+
+template<>
+VectorXd groupLassoFit<SparseMatrix<double> >::gr(const SparseMatrix<double> & X, int j, const VectorXd & resid)
+{
+  int sind = grpSIdx(j);
+  VectorXd wresid(resid),gr;
+  
+  if(weiOption){wresid = wei.array()*resid.array();}
+  gr = Rinvs[j].adjoint()*((X.block(0,sind,N,gsize(j)).adjoint()*wresid))/N
+    - Rinvs[j].adjoint()*Xcenter.segment(sind,gsize(j))*wresid.mean();
+    
+    return gr;
+}
+
 
 template <class TX>
 ArrayXd groupLassoFit<TX>::computeLambdaSequence(const VectorXd & y)
@@ -136,12 +179,18 @@ ArrayXd groupLassoFit<TX>::computeLambdaSequence(const VectorXd & y)
   double TOLERANCE(1e-08);
   
   gradnorm.setZero();
-  VectorXd ycentered = y.array()-y.mean();
   
+  double w_ymean(0);
+  //w_ymean = 1'Wy/n
+  if(weiOption){w_ymean = (wei.array()*y.array()).mean();}else{w_ymean = y.mean();}
+  
+  // ycentered = P0W(y-w_mean);
+  VectorXd ycentered = y.array()-w_ymean;
   for (int j=1; j<J;++j)
   {
+    
     int sind = grpSIdx(j);
-    g[j] = (Rinvs[j].adjoint()*(X.block(0,sind,N,gsize(j)).adjoint()*ycentered))/N;
+    g[j] = gr(X, j, ycentered);
     gradnorm(j) = g[j].norm()/pen(j);
     
   }
@@ -170,15 +219,15 @@ bool groupLassoFit<TX>::checkKKT_j(int j, const VectorXd & resid, const ArrayXd 
   VectorXd bj_old = bj;
   VectorXd zj;
   //VectorXd sresid;
-  //if(std::abs(resid.mean())>1e-10){throw std::invalid_argument("resid_mean != 0");} Commented due to extra calculation needed
-  if(j>0)
-  {
+  //if(std::abs(resid.mean())>1e-10){throw std::invalid_argument("resid_mean != 0");} Commented out due to the extra calculation
+  if(j>0){
+    
+    g[j] = gr(X, j, resid);
     //sresid=resid.array()-resid.mean();
-    g[j] =Rinvs[j].adjoint()*((X.block(0,sind,N,gsize(j)).adjoint()*resid))/N;
+    //        g[j] = Rinvs[j].adjoint()*((X.block(0,sind,N,gsize(j)).adjoint()*resid))/N;
+    //        std::cout<<"KKT:g"<<j<<":"<<g[j]<<"2:"<<gr(X, j, resid)<<std::endl;
     zj = g[j]+bj_old;
   }
-  else
-  { zj = (X.block(0,sind,N,gsize(j)).adjoint()*resid)/N+bj_old;}
   
   kkt_at_j = zj.norm()<lambda_k(j);
   return kkt_at_j;
@@ -238,11 +287,12 @@ bool groupLassoFit<TX>::KKT(const VectorXd & resid, const ArrayXd & lambda_k, in
 template <class TX>
 void groupLassoFit<TX>::coordinateDescent_0(VectorXd & resid)
 {
-  int j=0;
+  int j=0; double w_resid_mean(0);
   Map<VectorXd> bj(&beta.coeffRef(0),gsize(j));
   VectorXd bj_old = bj;
   
-  bj = resid.mean()+bj_old.array();//bj = mean(y)
+  if(weiOption){w_resid_mean = (wei.array()*resid.array()).mean();}else{w_resid_mean = resid.mean();}
+  bj = w_resid_mean+bj_old.array();//bj = mean(y)
   resid = resid.array()-(bj-bj_old).coeff(0,0);
   
   //iter++;
@@ -252,35 +302,35 @@ void groupLassoFit<TX>::coordinateDescent_0(VectorXd & resid)
 template <typename TX>
 void groupLassoFit<TX>::blockCoordinateDescent(VectorXd & resid, const ArrayXd & lambda_k, const double tol)
 {
-    std::set<int>::const_iterator it;
-    VectorXd beta_old(p);
-    VectorXd diff(p);
-    double error(1);
-    converged_CD = false;
+  std::set<int>::const_iterator it;
+  VectorXd beta_old(p);
+  VectorXd diff(p);
+  double error(1);
+  converged_CD = false;
+  
+  while(!converged_CD&&iter<maxit)
+  {
+    beta_old = beta;
     
-    while(!converged_CD&&iter<maxit)
+    if(activeSet.size()>0){
+      it = activeSet.begin();
+      while(it!=activeSet.end())
+      {
+        coordinateDescent_j(*it, resid, lambda_k);
+        ++it;
+      }//end of one cycle
+      
+      iter++;
+    }
+    diff = beta-beta_old;
+    error = diff.cwiseAbs().maxCoeff();
+    
+    if(error<tol)
     {
-        beta_old = beta;
-        
-        if(activeSet.size()>0){
-            it = activeSet.begin();
-            while(it!=activeSet.end())
-            {
-                D_coordinateDescent_j(*it, resid, lambda_k);
-                ++it;
-            }//end of one cycle
-            
-            iter++;
-        }
-        diff = beta-beta_old;
-        error = diff.cwiseAbs().maxCoeff();
-        
-        if(error<tol)
-        {
-            converged_CD=true;
-        }
-        
-    }//end of while loop
+      converged_CD=true;
+    }
+    
+  }//end of while loop
 }
 
 template <typename TX>
@@ -303,7 +353,7 @@ bool groupLassoFit<TX>::quadraticBCD(VectorXd & resid, const ArrayXd & lambda_k,
       if(converged_CD&&!violation1)
         break;
     }//do BCD on A, check KKT on inactiveSet1
-
+    
     
     violation = KKT(resid,lambda_k,2);
     
@@ -316,62 +366,66 @@ bool groupLassoFit<TX>::quadraticBCD(VectorXd & resid, const ArrayXd & lambda_k,
 template <typename TX>
 void groupLassoFit<TX>::Rinvs_X()
 {
-    
-    for (int l=0;l<(p-1);++l)
+  MatrixXd w_Xj;
+  VectorXd weisqrt(wei.array().sqrt());
+  
+  for (int l=0;l<(p-1);++l)
+  {
+    Xcenter(l) = X.col(l).mean();
+    X.col(l) = X.col(l).array()-Xcenter(l);
+  }
+  centerFlag = true;
+  
+  for(int j=1;j<J;++j){
+    int sind = grpSIdx(j);
+    if(gsize(j)>1)
     {
-        Xcenter(l) = X.col(l).mean();
-        X.col(l) = X.col(l).array()-Xcenter(l);
+      //Do a QR decomposition
+      // AP = QR <-> A = QRP^{-1}
+      
+      w_Xj = X.block(0,sind,N,gsize(j));
+      if(weiOption){w_Xj = weisqrt.asDiagonal()*w_Xj;}
+      
+      ColPivHouseholderQR<MatrixXd> qr(w_Xj);
+      if(qr.rank() < gsize(j)){throw std::invalid_argument("X(j) does not have full column rank");}
+      
+      MatrixXd R = qr.matrixR().topLeftCorner(qr.rank(), qr.rank()).triangularView<Upper>();
+      MatrixXd P = qr.colsPermutation();
+      R=R*P.inverse()/std::sqrt(N);
+      
+      Rinvs.at(j)= R.inverse();// QtQ = NIn. R' = R/sqrt(N)
     }
-    centerFlag = true;
-    
-    for(int j=1;j<J;++j){
-        int sind = grpSIdx(j);
-        if(gsize(j)>1)
-        {
-            //Do QR decomposition
-            ColPivHouseholderQR<MatrixXd> qr(X.block(0,sind,N,gsize(j)));
-            
-            
-            if(qr.rank() < gsize(j)){throw std::invalid_argument("X(j) does not have full column rank");}
-            
-            MatrixXd R = qr.matrixR().topLeftCorner(qr.rank(), qr.rank()).triangularView<Upper>();
-            MatrixXd P =qr.colsPermutation();
-            R=R*P.inverse()/std::sqrt(N);
-            
-            Rinvs.at(j)= R.inverse();// QtQ = NIn. R' = R/sqrt(N)
-        }
-        else
-        {
-            Rinvs.at(j) = X.block(0,sind,N,gsize(j)).adjoint()*X.block(0,sind,N,gsize(j))/N;
-            Rinvs.at(j) = Rinvs.at(j).array().sqrt().inverse();
-        }
+    else
+    {
+      w_Xj = X.block(0,sind,N,gsize(j));
+      if(weiOption){w_Xj = weisqrt.asDiagonal()*w_Xj;}
+      Rinvs.at(j) = w_Xj.adjoint()*w_Xj/N;
+      Rinvs.at(j) = Rinvs.at(j).array().sqrt().inverse();
     }
+  }
 }
 
 template <class TX>
 void groupLassoFit<TX>::decenterX()
 {
-    for (int l=0;l<(p-1);++l)
-    {
-        X.col(l) = X.col(l).array()+Xcenter(l);
-    }
-    centerFlag = false;
+  for (int l=0;l<(p-1);++l)
+  {
+    X.col(l) = X.col(l).array()+Xcenter(l);
+  }
+  centerFlag = false;
 }
 
 template <class TX>
 void groupLassoFit<TX>::centerX()
 {
-    for (int l=0;l<(p-1);++l)
-    {
-        X.col(l) = X.col(l).array()-Xcenter(l);
-    }
+  for (int l=0;l<(p-1);++l)
+  {
+    X.col(l) = X.col(l).array()-Xcenter(l);
+  }
 }
-///////////////////////////////////////////////////////
-//MatrixXd Specialization
-///////////////////////////////////////////////////////
 
 template <class TX>
-void groupLassoFit<TX>::D_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k)
+void groupLassoFit<TX>::coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k)
 {
   int sind = grpSIdx(j);
   Map<VectorXd> bj(&beta.coeffRef(sind+1),gsize(j));
@@ -380,23 +434,53 @@ void groupLassoFit<TX>::D_coordinateDescent_j(int j, VectorXd & resid, const Arr
   VectorXd update;
   double zjnorm(0);
   
-  g[j] = Rinvs[j].adjoint()*((X.block(0,sind,N,gsize(j)).adjoint()*resid))/N;
+  g[j] = gr(X,j,resid);
   zj = g[j]+bj_old;
   zjnorm = zj.norm();
   bj = ((zjnorm>lambda_k(j))?(1-(lambda_k(j)/zjnorm)):0)*zj;
   update =X.block(0,sind,N,gsize(j))*(Rinvs[j]*(bj-bj_old));
   resid -= update;
-  //iter++;
+  
 }
-
+template <>
+void groupLassoFit<SparseMatrix<double> >::coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k)
+{
+  int sind = grpSIdx(j);
+  Map<VectorXd> bj(&beta.coeffRef(sind+1),gsize(j));
+  VectorXd bj_old = bj;
+  VectorXd zj;
+  VectorXd update;
+  double zjnorm(0);
+  //    MatrixXd cj;
+  
+  g[j] = gr(X,j,resid);
+  zj = g[j] + bj_old;
+  zjnorm = zj.norm();
+  bj = ((zjnorm>lambda_k(j))?(1-(lambda_k(j)/zjnorm)):0)*zj;
+  
+  
+  //    cj = Rinvs[j]*(bj_old-bj);
+  //    update =X.block(0,sind,N,gsize(j))*cj;
+  
+  update =X.block(0,sind,N,gsize(j))*(Rinvs[j]*(bj-bj_old));
+  update = update.array()-update.mean();
+  resid -= update;
+  //    cj = Xcenter.segment(sind,gsize(j)).adjoint()*cj;
+  //iter++;
+  
+  //    return cj.coeff(0,0);
+}
 ///////////////////////////////////////////////////////
 //Specialization Sparse
 ///////////////////////////////////////////////////////
 template <>
 void groupLassoFit<SparseMatrix<double> >::Rinvs_X()
 {
-  MatrixXd Xcentered;
+  
   MatrixXd Xdl;
+  MatrixXd w_Xj;
+  VectorXd weisqrt(wei.array().sqrt());
+  
   for (int l=0;l<(p-1);++l)
   {
     Xdl = X.col(l);
@@ -406,19 +490,21 @@ void groupLassoFit<SparseMatrix<double> >::Rinvs_X()
   for(int j=1;j<J;++j)
   {
     int sind = grpSIdx(j);
-    Xcentered = X.block(0,sind,N,gsize(j));
+    w_Xj = X.block(0,sind,N,gsize(j));
     
     int k(0);
     for(int l=sind; l<(sind+gsize(j)); ++l)
     {
       Xdl = X.col(l);
       k = l-sind;
-      Xcentered.col(k) = Xdl.array()-Xcenter(l);
+      w_Xj.col(k) = Xdl.array()-Xcenter(l);
     }
     if(gsize(j)>1)
     {
-      //Do QR decomposition
-      ColPivHouseholderQR<MatrixXd> qr(Xcentered);
+      //Do a QR decomposition
+      if(weiOption){w_Xj = weisqrt.asDiagonal()*w_Xj;}
+      
+      ColPivHouseholderQR<MatrixXd> qr(w_Xj);
       
       if(qr.rank() < gsize(j)){throw std::invalid_argument("X(j) does not have full column rank");}
       
@@ -430,7 +516,8 @@ void groupLassoFit<SparseMatrix<double> >::Rinvs_X()
     }
     else
     {
-      Rinvs.at(j) = Xcentered.adjoint()*Xcentered/N;
+      if(weiOption){w_Xj = weisqrt.asDiagonal()*w_Xj;}
+      Rinvs.at(j) = w_Xj.adjoint()*w_Xj/N;
       Rinvs.at(j) = Rinvs.at(j).array().sqrt().inverse();
     }
     
@@ -440,80 +527,16 @@ void groupLassoFit<SparseMatrix<double> >::Rinvs_X()
 template <>
 void groupLassoFit<SparseMatrix<double> >::decenterX()
 {
-    //do nothing
+  //do nothing
 }
 
 template <>
 void groupLassoFit<SparseMatrix<double> >::centerX()
 {
-    //do nothing
+  //do nothing
 }
 
-//Do BCD in active set until active set coefficients converge or number of cycle reaches iter_max
-template <>
-void groupLassoFit<SparseMatrix<double> >::blockCoordinateDescent(VectorXd & resid, const ArrayXd & lambda_k, const double tol)
-{
-  std::set<int>::const_iterator it;
-  VectorXd beta_old(p);
-  VectorXd diff(p);
-  double error(1);
-  converged_CD = false;
-  double correction(0);
-  
-  while(!converged_CD&&iter<maxit)
-  {
-    beta_old = beta;
-    correction = 0;
-    if(activeSet.size()>0)
-    {
-      it = activeSet.begin();
-      while(it!=activeSet.end())
-      {
-        correction += S_coordinateDescent_j(*it, resid, lambda_k);
-        ++it;
-      }//end of one cycle
-      iter++;
-    }
-    
-    resid =resid.array()-correction;
-    diff = beta-beta_old;
-    error = diff.cwiseAbs().maxCoeff();
-    if(error<tol)
-      converged_CD=true;
-  }//end of while loop
-}
 
-template <class TX>
-double groupLassoFit<TX>::S_coordinateDescent_j(int j, VectorXd & resid, const ArrayXd & lambda_k)
-{
-  int sind = grpSIdx(j);
-  Map<VectorXd> bj(&beta.coeffRef(sind+1),gsize(j));
-  VectorXd bj_old = bj;
-  VectorXd zj;
-  VectorXd update;
-  VectorXd sresid;
-  double zjnorm(0);
-  MatrixXd cj;
-  
-  //New version
-  g[j] = Rinvs[j].adjoint()*((X.block(0,sind,N,gsize(j)).adjoint()*resid))/N
-    + Rinvs[j].adjoint()*Xcenter.segment(sind,gsize(j))*resid.mean();
-    
-    zj = g[j] + bj_old;
-    zjnorm = zj.norm();
-    bj = ((zjnorm>lambda_k(j))?(1-(lambda_k(j)/zjnorm)):0)*zj;
-    cj = Rinvs[j]*(bj_old-bj);
-    update =X.block(0,sind,N,gsize(j))*cj;
-    
-    //    update =X.block(0,sind,N,gsize(j))*(Rinvs[j]*(bj-bj_old));
-    //    update = update.array()-update.mean();
-    resid += update;
-    cj = Xcenter.segment(sind,gsize(j)).adjoint()*cj;
-    //iter++;
-    
-    return cj.coeff(0,0);
-}
-////////////////////////////////////////////////////////////////////////////////
 template<class TX>
 void groupLassoFit<TX>::checkDesignMatrix(const TX & X)
 {

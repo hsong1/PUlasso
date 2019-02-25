@@ -4,21 +4,21 @@
 \alias{cv.grpPUlasso}
 \title{Cross-validation for PUlasso}
 \usage{
-cv.grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
-  penalty = NULL, lambda = NULL, nlambda = 100,
-  lambdaMinRatio = ifelse(N < p, 0.05, 0.005), maxit = ifelse(method ==
-  "CD", 1000, N * 10), eps = 1e-04, inner_eps = 0.01, verbose = FALSE,
-  stepSize = NULL, stepSizeAdjustment = NULL, batchSize = 1,
-  updateFrequency = N, samplingProbabilities = NULL, method = c("CD",
-  "GD", "SGD", "SVRG", "SAG"), nfolds = 10, fitInd = 1:nfolds, nCores = 1,
-  trace = c("none", "param", "fVal", "all"))
+cv.grpPUlasso(X, z, py1, initial_coef = NULL, group = 1:p, penalty = NULL,
+  lambda = NULL, nlambda = 100, lambdaMinRatio = ifelse(N < p, 0.05,
+  0.005), maxit = ifelse(method == "CD", 1000, N * 10), weights = NULL,
+  eps = 1e-04, inner_eps = 0.01, verbose = FALSE, stepSize = NULL,
+  stepSizeAdjustment = NULL, batchSize = 1, updateFrequency = N,
+  samplingProbabilities = NULL, method = c("CD", "GD", "SGD", "SVRG",
+  "SAG"), nfolds = 10, fitInd = 1:nfolds, nCores = 1, trace = c("none",
+  "param", "fVal", "all"))
 }
 \arguments{
 \item{X}{Input matrix; each row is an observation. Can be a matrix or a sparse matrix.}
 
 \item{z}{Response vector representing whether an observation is labelled or unlabelled.}
 
-\item{pi}{True prevalence Pr(Y=1)}
+\item{py1}{True prevalence Pr(Y=1)}
 
 \item{initial_coef}{A vector representing an initial point where we start PUlasso algorithm from.}
 
@@ -33,6 +33,8 @@ cv.grpPUlasso(X, z, pi, initial_coef = NULL, group = 1:ncol(X),
 \item{lambdaMinRatio}{Smallest value for lambda, as a fraction of lambda.max which leads to the intercept only model.}
 
 \item{maxit}{Maximum number of iterations.}
+
+\item{weights}{observation weights. Default is 1 for each observation.}
 
 \item{eps}{Convergence threshold for the outer loop. The algorithm iterates until the maximum change in coefficients is less than eps in the outer loop.}
 
@@ -82,5 +84,5 @@ Do a n-fold cross-validation for PUlasso.
 }
 \examples{
 data("simulPU")
-fit<-cv.grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
+fit<-cv.grpPUlasso(X=simulPU$X,z=simulPU$z,py1=simulPU$truePY1)
 }

@@ -4,16 +4,18 @@
 \alias{deviances}
 \title{Deviance}
 \usage{
-deviances(X, z, pi, coefMat)
+deviances(X, z, py1, coefMat, weights = NULL)
 }
 \arguments{
 \item{X}{Input matrix}
 
 \item{z}{Response vector}
 
-\item{pi}{True prevalence Pr(Y=1)}
+\item{py1}{True prevalence Pr(Y=1)}
 
 \item{coefMat}{A coefficient matrix whose column corresponds to a set of coefficients}
+
+\item{weights}{observation weights. Default is 1 for each observation.}
 }
 \value{
 deviances
@@ -24,5 +26,5 @@ Calculate deviances at provided coefficients
 \examples{
 data("simulPU")
 coef0<-replicate(2,runif(ncol(simulPU$X)+1))
-deviances(simulPU$X,simulPU$z,pi=simulPU$truePY1,coefMat = coef0)
+deviances(simulPU$X,simulPU$z,py1=simulPU$truePY1,coefMat = coef0)
 }

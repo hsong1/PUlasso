@@ -7,8 +7,8 @@
 #' @examples
 #' vignette("PUlasso-vignette")  
 #' data("simulPU")
-#' fit<-grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
-#' cvfit<-cv.grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1)
+#' fit<-grpPUlasso(X=simulPU$X,z=simulPU$z,py1=simulPU$truePY1)
+#' cvfit<-cv.grpPUlasso(X=simulPU$X,z=simulPU$z,py1=simulPU$truePY1)
 #' coef(fit,lambda=fit$lambda[10])
 #' predict(cvfit,newdata = head(simulPU$X), lambda=cvfit$lambda.1se,type = "response")
 "_PACKAGE"

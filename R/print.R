@@ -9,7 +9,7 @@ print.PUfit<-function(x,...){
 #' @export
 #' @method print cvPUfit
 print.cvPUfit<-function(x,...){
-  cat("\nCall: ", deparse(x$PUfit$call), "\n")
+  cat("\nCall: ", deparse(x$call), "\n")
   cat("\nOptimization Method: ", deparse(x$PUfit$optResult$method), "\n")
   cat("\nMax nIters: ", deparse(x$PUfit$optResult$maxit), "\n\n")
 }

@@ -48,10 +48,10 @@ legend("bottomright",bg="transparent",legend=c("positive","negative"),col=c("red
 We fit the model using the most basic call. By default it fits the model for 100 values of $\lambda$ starting from the null model with lasso penalty.
 
 ```{r}
-(fit=grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1))
+(fit=grpPUlasso(X=simulPU$X,z=simulPU$z,py1=simulPU$truePY1))
 ```
 
-coefficients can be extracted using `coef` function. Here we extract estimated coefficients for 30th $\lambda$. By default, coefficients are returned in an original scale. If desired, we can set `std.scale=T` to obtain coefficients in a standardizeds scale.
+coefficients can be extracted using `coef` function. Here we extract estimated coefficients for 30th $\lambda$. By default, coefficients are returned in an original scale. If desired, we can set `std.scale=T` to obtain coefficients in the standardizeds scale.
 ```{r}
 coef(fit, lambda=fit$lambda[30])
 ```
@@ -62,10 +62,10 @@ If we want to predict responses at certain $x$, we use the `predict` function. B
 xnew = matrix(rnorm(10),2,5)
 predict(fit,newdata = xnew,lambda = fit$lambda[30])
 ```
-It is a common practice to choose $\lambda$ based on cross-validation. Main function for cross-validation is `cv.grpPUlasso`.
+It is a common practice to choose $\lambda$ based on cross-validation. Main function for the k-fold cross-validation is `cv.grpPUlasso`.
 
 ```{r}
-(cv.fit = cv.grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1))
+(cv.fit = cv.grpPUlasso(X=simulPU$X,z=simulPU$z,py1=simulPU$truePY1))
 ```
 
 We use deviance for a measure of model fit. Average deviance and standard error of deviance over all $k$-folds for all $\lambda$ values saved in `cv.fit$cvm` and `cv.fit$cvsd`, respectively. We are particularly interested in two lambda values : lambda.min which gives the minimum mean cross-validation deviance, and lambda.1se which corresponds to the largest $\lambda$ such that cvm is within one standard error of the minimum. We can also extract coefficients corresponding to such lambda levels.
@@ -97,7 +97,7 @@ legend("bottomright",bg="transparent",legend=c("hat_negative","hat_positive"),co
 We can also use a group lasso penalty. Suppose $X1$ is in group 1, $X2-X3$ are in group 2, and $X4-X5$ are in group 3. We only need to provide a membership information using an additional vector, here named as a `grpvec`.
 ```{r}
 grpvec = c(1,2,2,3,3)
-fit.grp = grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1,group = grpvec)
+fit.grp = grpPUlasso(X=simulPU$X,z=simulPU$z,py1=simulPU$truePY1,group = grpvec)
 ```
 
 All members in the group are either all included or not included. For example, we see from 13th $\lambda$ to 14th $\lambda$, members in group 2 are entered the model together.
@@ -127,16 +127,11 @@ newx = matrix(rnorm(10),2,5)
 predict(spfit,newdata = newx,lambda = spfit$lambda[10])
 ```
  
-```{r}
-newx = matrix(rnorm(10),2,5)
-predict(spfit,newdata = newx,lambda = spfit$lambda[10])
-
-```
 ## Optimization
 
 By default, PUlasso uses a block-coordinate descent algorithm to solve optimization problem \ref{objFunc}. However, it provides other optimization options such as proximal full gradient descent(GD), stochastic gradient descent(SGD), and variants of SGD including stochastic variance-reduced gradient(SVRG) and stochastic average gradient(SAG). For example, using SVRG method, we fit, 
   
 ```{r}
-(fit.SVRG = grpPUlasso(X=simulPU$X,z=simulPU$z,pi=simulPU$truePY1,method="SVRG",maxit=10000,eps = 1e-6,lambda =fit$lambda[2]))
+(fit.SVRG = grpPUlasso(X=simulPU$X,z=simulPU$z,py1=simulPU$truePY1,method="SVRG",eps = 1e-6,lambda =fit$lambda[2]))
 ```
-By default, PUlasso does 10*number of observations iterations. The algorithm terminates early if difference of current parameter value from the previous one is less than eps. 
+By default, PUlasso does 10*number of observations iterations. The algorithm terminates early if the difference of current parameter value from the previous one is less than the eps. 

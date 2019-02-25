@@ -1,6 +1,5 @@
 ## Resubmission
-This is a resubmission. In this version I have:
-* Built source file after running build_vignettes.
+This is a resubmission.
 
 ## Test environments
 * local OS X install, R 3.5.0
