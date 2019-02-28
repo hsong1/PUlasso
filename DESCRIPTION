@@ -6,7 +6,7 @@ Date: 2019-2-27
 Authors@R: c(person("Hyebin", "Song", role = c("aut", "cre"),
                      email = "hsong56@wisc.edu"),
             person("Garvesh", "Raskutti", role="aut",email="raskutti@stat.wisc.edu"))
-Description: Efficient algorithm for solving PU (Positive and Unlabelled) problem in low or high dimensional setting with lasso or group lasso penalty. The algorithm uses Maximization-Minorization and (block) coordinate descent. Sparse calculation and parallel computing are supported for the computational speed-up. See Hyebin Song, Garvesh Raskutti (2017) <arXiv:1711.08129>.
+Description: Efficient algorithm for solving PU (Positive and Unlabeled) problem in low or high dimensional setting with lasso or group lasso penalty. The algorithm uses Maximization-Minorization and (block) coordinate descent. Sparse calculation and parallel computing are supported for the computational speed-up. See Hyebin Song, Garvesh Raskutti (2018) <arXiv:1711.08129>.
 License: GPL-2
 Imports: Rcpp (>= 0.12.8), methods, Matrix, doParallel, foreach, ggplot2
 Depends: R(>= 2.10)
