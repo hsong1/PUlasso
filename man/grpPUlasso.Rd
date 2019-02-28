@@ -16,7 +16,7 @@ grpPUlasso(X, z, py1, initial_coef = NULL, group = 1:ncol(X),
 \arguments{
 \item{X}{Input matrix; each row is an observation. Can be a matrix or a sparse matrix.}
 
-\item{z}{Response vector representing whether an observation is labelled or unlabelled.}
+\item{z}{Response vector representing whether an observation is labeled or unlabeled.}
 
 \item{py1}{True prevalence Pr(Y=1)}
 

@@ -11,7 +11,7 @@
 #'@importFrom stats sd
 #'@useDynLib PUlasso
 #'@param X Input matrix; each row is an observation. Can be a matrix or a sparse matrix.
-#'@param z Response vector representing whether an observation is labelled or unlabelled.
+#'@param z Response vector representing whether an observation is labeled or unlabeled.
 #'@param py1 True prevalence Pr(Y=1)
 #'@param initial_coef A vector representing an initial point where we start PUlasso algorithm from.
 #'@param group A vector representing grouping of the coefficients. For the least ambiguity, it is recommended if group is provided in the form of vector of consecutive ascending integers.
