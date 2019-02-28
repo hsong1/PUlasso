@@ -1,6 +1,6 @@
 library(PUlasso)
 library(testthat)
-
+remove(list=ls())
 data("simulPU")
 load("sysdata.rda")
 
@@ -8,10 +8,11 @@ s<-sample(1:2000)
 X=simulPU$X
 z=simulPU$z
 truePrevalence=simulPU$truePY1
-set.seed(1)
-cX = c(X)
-cX[sample(1:length(cX),round(0.9*length(cX)))]=0
-spX = Matrix(cX,nrow(X),ncol(X))
+# set.seed(1)
+# cX = c(X)
+# cX[sample(1:length(cX),round(0.9*length(cX)))]=0
+# spX = Matrix(cX,nrow(X),ncol(X))
+# print(head(spX))
 
 X=X[s,]
 z=z[s]
@@ -48,6 +49,7 @@ test_that("Input : Dense matrix", {
 
 ##################################################################################################
 context("Input : Sparse matrix")
+
 
 # Fit with CD 
 spgn=grpPUlasso(X = spX,z=z,py1=truePrevalence,nlambda = 5,lambdaMinRatio = 1e-3, eps=1e-07)
