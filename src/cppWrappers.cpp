@@ -23,6 +23,7 @@ Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_,
                         int pathLength_,
                         double lambdaMinRatio_,
                         double pi_,
+                        int max_nUpdates_,
                         int maxit_,
                         Eigen::VectorXd & wei_,
                         bool weiOption_,
@@ -46,7 +47,7 @@ Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_,
     if(method_=="CD"){
       LUfit<Eigen::Map<Eigen::MatrixXd> > lu(X_,z_,icoef_,gsize_,pen_,
                                              lambdaseq_,user_lambdaseq_,pathLength_,
-                                             lambdaMinRatio_,pi_,maxit_,wei_,weiOption_,tol_,
+                                             lambdaMinRatio_,pi_,max_nUpdates_,maxit_,wei_,weiOption_,tol_,
                                              inner_tol_,useStrongSet_,verbose_,trace_);
       if(!skipFitting_){lu.LUfit_main();}
       return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),
@@ -103,6 +104,7 @@ Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double> & X_,
                          int pathLength_,
                          double lambdaMinRatio_,
                          double pi_,
+                         int max_nUpdates_,
                          int maxit_,
                          Eigen::VectorXd & wei_,
                          bool weiOption_,
@@ -124,7 +126,7 @@ Rcpp::List LU_sparse_cpp(Eigen::SparseMatrix<double> & X_,
     if(method_=="CD"){
       LUfit<Eigen::SparseMatrix<double> > lu(X_,z_,icoef_,gsize_,pen_,
                                              lambdaseq_,user_lambdaseq_,pathLength_,
-                                             lambdaMinRatio_,pi_,maxit_,wei_,weiOption_,tol_,
+                                             lambdaMinRatio_,pi_,max_nUpdates_,maxit_,wei_,weiOption_,tol_,
                                              inner_tol_,useStrongSet_,verbose_,trace_);
       if(!skipFitting_){lu.LUfit_main();}
       return Rcpp::List::create(Rcpp::Named("coef") = lu.getCoefficients(),

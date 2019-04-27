@@ -16,6 +16,7 @@
 #'@param nlambda The number of lambda values. 
 #'@param lambdaMinRatio Smallest value for lambda, as a fraction of lambda.max which leads to the intercept only model.
 #'@param maxit Maximum number of iterations. 
+#'@param maxit_inner Maximum number of iterations for a quadratic sub-problem for CD.
 #'@param weights observation weights. Default is 1 for each observation.
 #'@param eps Convergence threshold for the outer loop. The algorithm iterates until the maximum change in coefficients is less than eps in the outer loop.
 #'@param inner_eps Convergence threshold for the inner loop. The algorithm iterates until the maximum change in coefficients is less than eps in the inner loop.
@@ -39,25 +40,49 @@
 #'fit<-grpPUlasso(X=simulPU$X,z=simulPU$z,py1=simulPU$truePY1)
 #'@export
 #'
-grpPUlasso <-function(X,z,py1,initial_coef=NULL,group=1:ncol(X),
-                      penalty=NULL,lambda=NULL, nlambda = 100, 
-                      lambdaMinRatio=ifelse(N < p, 0.05, 0.005),
-                      maxit=ifelse(method=="CD",1000,N*10),
-                      weights = NULL,eps=1e-04,inner_eps = 1e-02, 
-                      verbose = FALSE, stepSize=NULL, stepSizeAdjustment = NULL, batchSize=1, updateFrequency=N,
-                      samplingProbabilities=NULL, method=c("CD","GD","SGD","SVRG","SAG"),trace=c("none","param","fVal","all"))
+grpPUlasso <- function(X,
+                       z,
+                       py1,
+                       initial_coef = NULL,
+                       group = 1:ncol(X),
+                       penalty = NULL,
+                       lambda = NULL,
+                       nlambda = 100,
+                       lambdaMinRatio = ifelse(N < p, 0.05, 0.005),
+                       maxit = ifelse(method == "CD", 1000, N * 10),
+                       maxit_inner = 100000,
+                       weights = NULL,
+                       eps = 1e-04,
+                       inner_eps = 1e-02,
+                       verbose = FALSE,
+                       stepSize = NULL,
+                       stepSizeAdjustment = NULL,
+                       batchSize = 1,
+                       updateFrequency = N,
+                       samplingProbabilities = NULL,
+                       method = c("CD", "GD", "SGD", "SVRG", "SAG"),
+                       trace = c("none", "param", "fVal", "all")
+)
 {
   N = nrow(X); p = ncol(X)
   # X, z input check
-  input_check(X,z,group,penalty,stepSize,samplingProbabilities,weights)
-  if(is.null(colnames(X))){colnames(X) <- paste("V",1:ncol(X),sep = "")}
+  input_check(X, z, group, penalty, stepSize, samplingProbabilities, weights)
+  if (is.null(colnames(X))) {
+    colnames(X) <- paste("V", 1:ncol(X), sep = "")
+  }
   
   # Reorder samples of X,z
-  row_ordering= order(z,decreasing = T); col_ordering = order(group)
-  ordering_res = ordering_data(row_ordering,col_ordering, X, z, group, weights)
-  X_lu = ordering_res$X_lu; z_lu = ordering_res$z_lu; w_lu = ordering_res$w_lu;
-  group = ordering_res$group; group0 = ordering_res$group0;
-  remove(X,z,ordering_res)
+  row_ordering = order(z, decreasing = T)
+  col_ordering = order(group)
+  ordering_res = ordering_data(row_ordering, col_ordering, X, z, group, weights)
+  X_lu = ordering_res$X_lu
+  z_lu = ordering_res$z_lu
+  w_lu = ordering_res$w_lu
+  
+  group = ordering_res$group
+  group0 = ordering_res$group0
+  
+  remove(X, z, ordering_res)
   
   # Check the type of X
   is.sparse = FALSE
@@ -65,111 +90,138 @@ grpPUlasso <-function(X,z,py1,initial_coef=NULL,group=1:ncol(X),
     is.sparse = TRUE
     X_lu = as(X_lu, "CsparseMatrix")
     X_lu = as(X_lu, "dgCMatrix")
-  } else if (inherits(X_lu,"dgeMatrix")){
+  } else if (inherits(X_lu, "dgeMatrix")) {
     X_lu = as.matrix(X_lu)
   }
-  if(!(class(X_lu)=="matrix"||class(X_lu)=="dgCMatrix")){stop("X must be a matrix or a sparse matrix")}
-  if(typeof(X_lu)!="double"){X_lu <- X_lu + 0.0} # Ensure type of X is double   
+  if (!(class(X_lu) == "matrix" ||
+        class(X_lu) == "dgCMatrix")) {
+    stop("X must be a matrix or a sparse matrix")
+  }
+  if (typeof(X_lu) != "double") {
+    X_lu <- X_lu + 0.0
+  } # Ensure type of X is double
   
   # Normalize weights
-  if(!is.null(w_lu)){weiOption<- TRUE; w_lu <- w_lu/sum(w_lu)*length(w_lu)}else{
-    weiOption <- FALSE; w_lu <- rep(1,N)}
-  
-  # Apply strong set screening if p >N
-  usestrongSet=ifelse(N<p,FALSE,TRUE)
-  
-  # Match arguments
-  method = match.arg(method,choices=c("CD","GD","SGD","SVRG","SAG"))
-  trace = match.arg(trace,choices=c("none","param","fVal","all"))
-  
-  # Fitting and opt_option setup
-  fitting_ls = fitting_setup(py1 = py1, 
-                             lambda = lambda,
-                             lambdaMinRatio = lambdaMinRatio,
-                             nlambda = nlambda,
-                             initial_coef = initial_coef,
-                             group = group,
-                             penalty = penalty,
-                             p = p)
-  
-  opt_ls = opt_option_setup(method = method,
-                            trace = trace,
-                            stepSize = stepSize,
-                            stepSizeAdjustment = stepSizeAdjustment,
-                            samplingProbabilities = samplingProbabilities)
-  
-  if(weiOption&&(method!="CD")){
-    opt_ls$method= "CD"; message("Currently the weight option is available for method == CD. Method switched to CD")}
-  skip_fitting = getOption('PUlasso.skip_fitting')
-  
-  if(!is.sparse){
-    g<-LU_dense_cpp(X_ = X_lu,
-                    z_ = z_lu,
-                    icoef_ = fitting_ls$icoef,
-                    gsize_ = fitting_ls$gsize, 
-                    pen_ = fitting_ls$pen,
-                    lambdaseq_ = fitting_ls$lambdaseq, 
-                    user_lambdaseq_ = fitting_ls$user_lambdaseq,
-                    pathLength_ = nlambda,
-                    lambdaMinRatio_ = lambdaMinRatio, 
-                    pi_ = py1,
-                    maxit_ = maxit,
-                    wei_ = w_lu,
-                    weiOption_ = weiOption,
-                    tol_ = eps,
-                    inner_tol_ = inner_eps,
-                    useStrongSet_= usestrongSet,
-                    verbose_ = verbose, 
-                    stepSize_= opt_ls$stepSize,
-                    stepSizeAdj_= opt_ls$stepSizeAdjustment, 
-                    batchSize_= batchSize,
-                    updateFreq_= updateFrequency,
-                    samplingProbabilities_= opt_ls$samplingProbabilities,
-                    useLipschitz_= opt_ls$use_Lipschitz_for_ss_or_sProb,
-                    method_= method,
-                    trace_= opt_ls$trace,
-                    skipFitting_ = skip_fitting)
-  }else{
-    g<-LU_sparse_cpp(X_ = X_lu,
-                     z_ = z_lu,
-                     icoef_ = fitting_ls$icoef,
-                     gsize_ = fitting_ls$gsize, 
-                     pen_ = fitting_ls$pen,
-                     lambdaseq_ = fitting_ls$lambdaseq, 
-                     user_lambdaseq_ = fitting_ls$user_lambdaseq,
-                     pathLength_ = nlambda,
-                     lambdaMinRatio_ = lambdaMinRatio, 
-                     pi_ = py1,
-                     maxit_ = maxit,
-                     wei_ = w_lu,
-                     weiOption_ = weiOption,
-                     tol_ = eps,
-                     inner_tol_ = inner_eps,
-                     useStrongSet_= usestrongSet,
-                     verbose_ = verbose, 
-                     stepSize_= opt_ls$stepSize,
-                     stepSizeAdj_= opt_ls$stepSizeAdjustment, 
-                     batchSize_= batchSize,
-                     updateFreq_= updateFrequency,
-                     samplingProbabilities_= opt_ls$samplingProbabilities,
-                     useLipschitz_= opt_ls$use_Lipschitz_for_ss_or_sProb,
-                     method_= method,
-                     trace_= opt_ls$trace,
-                     skipFitting_ = skip_fitting)
+  if (!is.null(w_lu)) {
+    weiOption <- TRUE
+    w_lu <- w_lu / sum(w_lu) * length(w_lu)
+  } else{
+    weiOption <- FALSE
+    w_lu <- rep(1, N)
   }
   
-
-  cpp_results = summary_cpp_results(g,method,trace,colnames=colnames(X_lu),group0=group0)
+  # Apply strong set screening if p >N
+  usestrongSet = ifelse(N < p, FALSE, TRUE)
   
-  optResult = list(method = method,
-                   convergence = g$convFlag,
-                   fValues = g$fVals,
-                   subGradients = g$subgrads,
-                   stepSize=g$stepSize,
-                   samplingProbabilities=g$samplingProbabilities,
-                   std_coef_all = cpp_results$std_coef_all,
-                   fValues_all = cpp_results$fVals_all,
-                   maxit = maxit)
+  # Match arguments
+  method = match.arg(method, choices = c("CD", "GD", "SGD", "SVRG", "SAG"))
+  trace = match.arg(trace, choices = c("none", "param", "fVal", "all"))
+  
+  # Fitting and opt_option setup
+  fitting_ls = fitting_setup(
+    py1 = py1,
+    lambda = lambda,
+    lambdaMinRatio = lambdaMinRatio,
+    nlambda = nlambda,
+    initial_coef = initial_coef,
+    group = group,
+    penalty = penalty,
+    p = p
+  )
+  
+  opt_ls = opt_option_setup(
+    method = method,
+    trace = trace,
+    stepSize = stepSize,
+    stepSizeAdjustment = stepSizeAdjustment,
+    samplingProbabilities = samplingProbabilities
+  )
+  
+  if(weiOption&&
+     (method != "CD")) {
+    opt_ls$method = "CD"
+    message("Currently the weight option is available for method == CD. Method switched to CD")
+  }
+  skip_fitting = getOption('PUlasso.skip_fitting')
+  
+  if(!is.sparse) {
+    g <- LU_dense_cpp(
+      X_ = X_lu,
+      z_ = z_lu,
+      icoef_ = fitting_ls$icoef,
+      gsize_ = fitting_ls$gsize,
+      pen_ = fitting_ls$pen,
+      lambdaseq_ = fitting_ls$lambdaseq,
+      user_lambdaseq_ = fitting_ls$user_lambdaseq,
+      pathLength_ = nlambda,
+      lambdaMinRatio_ = lambdaMinRatio,
+      pi_ = py1,
+      max_nUpdates_ = maxit,
+      maxit_ = maxit_inner,
+      wei_ = w_lu,
+      weiOption_ = weiOption,
+      tol_ = eps,
+      inner_tol_ = inner_eps,
+      useStrongSet_ = usestrongSet,
+      verbose_ = verbose,
+      stepSize_ = opt_ls$stepSize,
+      stepSizeAdj_ = opt_ls$stepSizeAdjustment,
+      batchSize_ = batchSize,
+      updateFreq_ = updateFrequency,
+      samplingProbabilities_ = opt_ls$samplingProbabilities,
+      useLipschitz_ = opt_ls$use_Lipschitz_for_ss_or_sProb,
+      method_ = method,
+      trace_ = opt_ls$trace,
+      skipFitting_ = skip_fitting
+    )
+  } else{
+    g <- LU_sparse_cpp(
+      X_ = X_lu,
+      z_ = z_lu,
+      icoef_ = fitting_ls$icoef,
+      gsize_ = fitting_ls$gsize,
+      pen_ = fitting_ls$pen,
+      lambdaseq_ = fitting_ls$lambdaseq,
+      user_lambdaseq_ = fitting_ls$user_lambdaseq,
+      pathLength_ = nlambda,
+      lambdaMinRatio_ = lambdaMinRatio,
+      pi_ = py1,
+      max_nUpdates_ = maxit,
+      maxit_ = maxit_inner,
+      wei_ = w_lu,
+      weiOption_ = weiOption,
+      tol_ = eps,
+      inner_tol_ = inner_eps,
+      useStrongSet_ = usestrongSet,
+      verbose_ = verbose,
+      stepSize_ = opt_ls$stepSize,
+      stepSizeAdj_ = opt_ls$stepSizeAdjustment,
+      batchSize_ = batchSize,
+      updateFreq_ = updateFrequency,
+      samplingProbabilities_ = opt_ls$samplingProbabilities,
+      useLipschitz_ = opt_ls$use_Lipschitz_for_ss_or_sProb,
+      method_ = method,
+      trace_ = opt_ls$trace,
+      skipFitting_ = skip_fitting
+    )
+  }
+  
+  
+  cpp_results = summary_cpp_results(g, method, trace, colnames = colnames(X_lu), group0 =
+                                      group0)
+  
+  optResult = list(
+    method = method,
+    convergence = g$convFlag,
+    fValues = g$fVals,
+    subGradients = g$subgrads,
+    stepSize = g$stepSize,
+    samplingProbabilities = g$samplingProbabilities,
+    std_coef_all = cpp_results$std_coef_all,
+    fValues_all = cpp_results$fVals_all,
+    maxit = maxit
+    
+  )
   
   # warning
   if(method %in% c("CD","GD")){
@@ -190,14 +242,19 @@ grpPUlasso <-function(X,z,py1,initial_coef=NULL,group=1:ncol(X),
     }
   }
   
-  result <- structure(list(coef = cpp_results$coef, 
-                           std_coef = cpp_results$std_coef, 
-                           lambda=g$lambda,
-                           nullDev=g$nullDev,
-                           deviance=g$deviance,
-                           optResult=optResult,
-                           iters= cpp_results$iters,
-                           call=match.call()),class="PUfit")
+  result <- structure(
+    list(
+      coef = cpp_results$coef,
+      std_coef = cpp_results$std_coef,
+      lambda = g$lambda,
+      nullDev = g$nullDev,
+      deviance = g$deviance,
+      optResult = optResult,
+      iters = cpp_results$iters,
+      call = match.call()
+    ),
+    class = "PUfit"
+  )
   
   return(result)
 }

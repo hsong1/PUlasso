@@ -6,6 +6,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include <string>
 // #include <iostream>
 #include "RcppEigen.h"
 

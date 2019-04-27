@@ -3,8 +3,12 @@ using namespace Eigen;
 
 //Constructor
 template <class TX>
-groupLassoFit<TX>::groupLassoFit(TX & X_, VectorXd & y_, VectorXd & icoef_, ArrayXd & gsize_,
-                                 ArrayXd & pen_,ArrayXd & lambdaseq_,
+groupLassoFit<TX>::groupLassoFit(TX & X_,
+                                 VectorXd & y_,
+                                 VectorXd & icoef_,
+                                 ArrayXd & gsize_,
+                                 ArrayXd & pen_,
+                                 ArrayXd & lambdaseq_,
                                  bool isUserLambdaseq_,
                                  int pathLength_,
                                  double lambdaMinRatio_,
@@ -132,8 +136,11 @@ VectorXd groupLassoFit<TX>::linpred(const VectorXd & beta)
     lpred+=X.block(0,sind,N,gsize(j))*(Rinvs[j]*beta.segment(sind+1,gsize(j)));
   }
   // beta0 + P0 (sum Qj_beta_j)
-  // if X already centered, lpred.mean = 0
-  lpred = lpred.array()-(lpred.mean()-beta(0));
+  // if X already centered (with weight), wmean = 0
+  double wmean(0);
+  if(weiOption){wmean = (lpred.array()*wei.array()).mean();}else{wmean = lpred.mean();}
+  //    std::cout<<"wmean"<<wmean<<std::endl;
+  lpred = lpred.array()-(wmean-beta(0));
   return lpred;
 }
 
@@ -144,6 +151,7 @@ VectorXd groupLassoFit<TX>::linpred_update(const VectorXd & new_resid, const Vec
 }
 
 //(R^{-1})'(P0Xj)'Wresid/N
+// P0Xj = Xj when dense matrix
 template <class TX>
 VectorXd groupLassoFit<TX>::gr(const TX & X, int j, const VectorXd & resid){
   
@@ -184,13 +192,11 @@ ArrayXd groupLassoFit<TX>::computeLambdaSequence(const VectorXd & y)
   //w_ymean = 1'Wy/n
   if(weiOption){w_ymean = (wei.array()*y.array()).mean();}else{w_ymean = y.mean();}
   
-  // ycentered = P0W(y-w_mean);
-  VectorXd ycentered = y.array()-w_ymean;
+  // resid0 = y-beta0;
+  VectorXd resid0 = y.array()-w_ymean;
   for (int j=1; j<J;++j)
   {
-    
-    int sind = grpSIdx(j);
-    g[j] = gr(X, j, ycentered);
+    g[j] = gr(X, j, resid0);
     gradnorm(j) = g[j].norm()/pen(j);
     
   }
@@ -218,14 +224,8 @@ bool groupLassoFit<TX>::checkKKT_j(int j, const VectorXd & resid, const ArrayXd 
   Map<VectorXd> bj(&beta.coeffRef(sind+1),gsize(j));
   VectorXd bj_old = bj;
   VectorXd zj;
-  //VectorXd sresid;
-  //if(std::abs(resid.mean())>1e-10){throw std::invalid_argument("resid_mean != 0");} Commented out due to the extra calculation
   if(j>0){
-    
     g[j] = gr(X, j, resid);
-    //sresid=resid.array()-resid.mean();
-    //        g[j] = Rinvs[j].adjoint()*((X.block(0,sind,N,gsize(j)).adjoint()*resid))/N;
-    //        std::cout<<"KKT:g"<<j<<":"<<g[j]<<"2:"<<gr(X, j, resid)<<std::endl;
     zj = g[j]+bj_old;
   }
   
@@ -287,8 +287,8 @@ bool groupLassoFit<TX>::KKT(const VectorXd & resid, const ArrayXd & lambda_k, in
 template <class TX>
 void groupLassoFit<TX>::coordinateDescent_0(VectorXd & resid)
 {
-  int j=0; double w_resid_mean(0);
-  Map<VectorXd> bj(&beta.coeffRef(0),gsize(j));
+  double w_resid_mean(0);
+  Map<VectorXd> bj(&beta.coeffRef(0),gsize(0));
   VectorXd bj_old = bj;
   
   if(weiOption){w_resid_mean = (wei.array()*resid.array()).mean();}else{w_resid_mean = resid.mean();}
@@ -345,21 +345,22 @@ bool groupLassoFit<TX>::quadraticBCD(VectorXd & resid, const ArrayXd & lambda_k,
   {
     while(iter<maxit)
     {
-      //BCD in active set
+      //do BCD until alg converged or iters reach maxit in active set
       blockCoordinateDescent(resid, lambda_k, tol);
       //KKT in strong set
       violation1 = KKT(resid,lambda_k,1);
-      
+      //converged and no violation in inactiveSet1
       if(converged_CD&&!violation1)
         break;
     }//do BCD on A, check KKT on inactiveSet1
     
-    
     violation = KKT(resid,lambda_k,2);
     
-    if(!violation){break;}
+    if(converged_CD&&!violation){break;}
   }//inner loop + KKT for inactiveSet2
-  return !violation;
+  
+  converged_KKT = !violation1 && !violation;
+  return converged_CD && converged_KKT;
 }
 
 //Rinvs
@@ -368,10 +369,14 @@ void groupLassoFit<TX>::Rinvs_X()
 {
   MatrixXd w_Xj;
   VectorXd weisqrt(wei.array().sqrt());
+  VectorXd w_Xl;
   
+  // weighted mean
   for (int l=0;l<(p-1);++l)
   {
-    Xcenter(l) = X.col(l).mean();
+    w_Xl = X.col(l);
+    if(weiOption){w_Xl = wei.array()*w_Xl.array();}
+    Xcenter(l) = w_Xl.mean();
     X.col(l) = X.col(l).array()-Xcenter(l);
   }
   centerFlag = true;
@@ -451,24 +456,18 @@ void groupLassoFit<SparseMatrix<double> >::coordinateDescent_j(int j, VectorXd &
   VectorXd zj;
   VectorXd update;
   double zjnorm(0);
-  //    MatrixXd cj;
   
   g[j] = gr(X,j,resid);
   zj = g[j] + bj_old;
   zjnorm = zj.norm();
   bj = ((zjnorm>lambda_k(j))?(1-(lambda_k(j)/zjnorm)):0)*zj;
   
-  
-  //    cj = Rinvs[j]*(bj_old-bj);
-  //    update =X.block(0,sind,N,gsize(j))*cj;
-  
-  update =X.block(0,sind,N,gsize(j))*(Rinvs[j]*(bj-bj_old));
-  update = update.array()-update.mean();
+  update = X.block(0,sind,N,gsize(j))*(Rinvs[j]*(bj-bj_old));
+  double wupdate_mean(0);
+  if(weiOption){wupdate_mean = (update.array()*wei.array()).mean(); }else{wupdate_mean = update.mean();}
+  update = update.array()-wupdate_mean;
   resid -= update;
-  //    cj = Xcenter.segment(sind,gsize(j)).adjoint()*cj;
-  //iter++;
   
-  //    return cj.coeff(0,0);
 }
 ///////////////////////////////////////////////////////
 //Specialization Sparse
@@ -477,14 +476,15 @@ template <>
 void groupLassoFit<SparseMatrix<double> >::Rinvs_X()
 {
   
-  MatrixXd Xdl;
   MatrixXd w_Xj;
   VectorXd weisqrt(wei.array().sqrt());
+  VectorXd w_Xl;
   
   for (int l=0;l<(p-1);++l)
   {
-    Xdl = X.col(l);
-    Xcenter(l) = Xdl.mean();
+    w_Xl = X.col(l);
+    if(weiOption){w_Xl = wei.array()*w_Xl.array();}
+    Xcenter(l) = w_Xl.mean();
   }
   
   for(int j=1;j<J;++j)
@@ -495,9 +495,9 @@ void groupLassoFit<SparseMatrix<double> >::Rinvs_X()
     int k(0);
     for(int l=sind; l<(sind+gsize(j)); ++l)
     {
-      Xdl = X.col(l);
+      w_Xl = X.col(l);
       k = l-sind;
-      w_Xj.col(k) = Xdl.array()-Xcenter(l);
+      w_Xj.col(k) = w_Xl.array()-Xcenter(l);
     }
     if(gsize(j)>1)
     {

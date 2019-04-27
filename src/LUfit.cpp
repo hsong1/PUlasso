@@ -1,27 +1,53 @@
 #include "LUfit.h"
 
 template <class TX>
-LUfit<TX>::LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,
-                 ArrayXd & pen_,ArrayXd & lambdaseq_,bool isUserLambdaseq_,
-                 int pathLength_,double lambdaMinRatio_, double pi_, int maxit_,
-                 VectorXd & wei_, bool weiOption_,
-                 double tol_,double inner_tol_,bool useStrongSet_,bool verbose_,int trace_)
+LUfit<TX>::LUfit(TX & X_,
+                 VectorXd & z_,
+                 VectorXd & icoef_,
+                 ArrayXd & gsize_,
+                 ArrayXd & pen_,
+                 ArrayXd & lambdaseq_,
+                 bool isUserLambdaseq_,
+                 int pathLength_,
+                 double lambdaMinRatio_,
+                 double pi_,
+                 int max_nUpdates_,
+                 int maxit_,
+                 VectorXd & wei_,
+                 bool weiOption_,
+                 double tol_,
+                 double inner_tol_,
+                 bool useStrongSet_,
+                 bool verbose_,
+                 int trace_)
   :groupLassoFit<TX>(X_,z_,icoef_,gsize_,pen_,lambdaseq_,isUserLambdaseq_,pathLength_,lambdaMinRatio_, maxit_,
-   wei_,weiOption_,tol_,verbose_,trace_),t(0.25),lresp(z_),pi(pi_),nUpdate(0),inner_tol(inner_tol_),useStrongSet(useStrongSet_)
+   wei_,weiOption_,tol_,verbose_,trace_),t(0.25),lresp(z_),pi(pi_),nUpdate(0),max_nUpdates(max_nUpdates_), inner_tol(inner_tol_),useStrongSet(useStrongSet_)
    {
      //Initialize LU parameters
      nl = y.sum();
      nu = N-nl;
+     if(weiOption){
+       wnl = (wei.array()*y.array()).sum();
+       wnu = N-wnl;
+     }else{
+       wnl = nl;
+       wnu = nu;
+     }
      if(nl==0||nu==0){throw std::invalid_argument("Response can't be all zero or one");}
-     bias = std::log((nl+nu*pi)/(pi*nu));
      
+     // bias in the linear predictor
+     bias = std::log((wnl+wnu*pi)/(pi*wnu));
+     // intercept in the inverse link
+     c0 = std::log(wnl/(pi*wnu));
+     
+     // Initializations
      nUpdates = ArrayXi::Zero(K);
      Deviances = VectorXd::Zero(K);
      fVals = VectorXd::Zero(K);
      subgrads = MatrixXd::Zero(p,K);
      if(trace>=1){
-       fVals_all.resize(maxit+1, K);fVals_all.setZero();
-       beta_all.resize(p*K, maxit+1);beta_all.setZero();
+       fVals_all.resize(max_nUpdates+1, K); fVals_all.setZero();
+       beta_all.resize(p*K, max_nUpdates+1); beta_all.setZero();
      }
      
      VectorXd lpred0(N),beta0(p);
@@ -29,16 +55,15 @@ LUfit<TX>::LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,
      beta0 << std::log(pi/(1-pi)),VectorXd::Zero(p-1); //Intercept-only, no need to standardize
      nullDev = evalDev(lpred0);
      
-     //Initialize beta
-     beta = org_to_std(icoef_);
-     if(!beta.segment(1,(p-1)).any())
-     {
-       beta = beta0 ;
-     }
+     // Initialize beta
+     // beta = org_to_std(icoef_); already executed during construction of grpLassoFit
+     // If betaj = 0 for all j>1, set the intercept to be the analytical solution value.
+     if(!beta.segment(1,(p-1)).any()){beta = beta0;}
+     
      //update mu, lresp, resid at initial beta
      VectorXd lpred = linpred(beta);
      lpred_old = lpred;
-     updateObjFunc(lpred);//update mu, lresp, resid at new beta
+     updateObjFunc(lpred);//update mu, lresp, resid at the new beta
      
      //lambdaseq, in default, lammax is calculated where lresp = [1,p,1-p]
      VectorXd lresp0(N),mu0(p);
@@ -47,7 +72,6 @@ LUfit<TX>::LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,
      exponent1 = (-lpred0).array().exp();
      mu0 =1/(1+exponent1.array());
      lresp0.segment(nl,nu) = mu0.segment(nl, nu);
-     
      default_lambdaseq = computeLambdaSequence(lresp0);
      if(!isUserLambdaseq){lambdaseq = default_lambdaseq;}
      
@@ -109,55 +133,60 @@ void LUfit<TX>::setupinactiveSets(int k, const VectorXd & resid, double lam_max,
   }
 }
 
-
 template <class TX>
 void LUfit<TX>::compute_mu_mustar(const VectorXd & lpred, VectorXd & mu, VectorXd & mustar)
 {
   VectorXd exponent1, exponent2;
   exponent1 = (-lpred).array().exp();
   exponent2 = exponent1*std::exp(-bias);
+  // mu: 1/(1+exp(-lpred))
   mu =1/(1+exponent1.array());
+  // mustar: 1/(1+exp(-lpred-bias))
   mustar = 1/(1+exponent2.array());
 }
 
-
 //update mu, lresp, resid at new beta
+//lresp = E[y(newbeta)|observed] = mu^{1-z}
 template <class TX>
 void LUfit<TX>::updateObjFunc(VectorXd & lpred)
 {
   VectorXd mustar;
   compute_mu_mustar(lpred, mu, mustar);
   lresp.segment(nl,nu) = mu.segment(nl, nu);
-  resid = (lresp-mustar)/t;
+  resid = (lresp-mustar)/t; //4(lresp-mustar)+lpred-lpred
   resid_old = resid;
-  coordinateDescent_0(resid);
 }
+
 //calculate deviance using precalculated lpred
 template <class TX>
 double LUfit<TX>::evalDev(const VectorXd & lpred)
 {
-  const double c = std::log(nl/(pi*nu));
   VectorXd pred, logExpLpred, logExpPred,obslogL;
-  logExpLpred = (lpred.array().exp().array()+1).array().log();
-  pred = c+lpred.array()-logExpLpred.array();
-  logExpPred = (1+pred.array().exp()).array().log();
-  obslogL = (y.array()*pred.array()-logExpPred.array());//response z_lu = y
+  
+  logExpLpred = (lpred.array().exp().array()+1).array().log(); //log(1+exp(lpred))
+  pred = c0+lpred.array()-logExpLpred.array(); //h = c+lpred-log(1+exp(lpred))
+  
+  logExpPred = (1+pred.array().exp()).array().log(); // log(1+e^h)
+  //response z_lu = y
+  obslogL = (y.array()*pred.array()-logExpPred.array()); //obsLogLik = (zh - log(1+e^h))
+  
   if(weiOption){obslogL = obslogL.array()*wei.array();}
   
   return -2*obslogL.sum();
 }
+
 template <class TX>
 double LUfit<TX>::evalObjective(const VectorXd & lpred, const VectorXd & beta, const ArrayXd & lambda)
 {
-  const double c = std::log(nl/(pi*nu));
+  
   double penVal(0);
   VectorXd pred, logExpLpred, logExpPred,obslogL;
   VectorXd bj;
   
   logExpLpred = (lpred.array().exp().array()+1).array().log();
-  pred = c+lpred.array()-logExpLpred.array();
+  pred = c0 + lpred.array()- logExpLpred.array();
   logExpPred = (1+pred.array().exp()).array().log();
-  obslogL = (y.array()*pred.array()-logExpPred.array());//response z_lu = y
+  obslogL = (y.array()*pred.array()-logExpPred.array());
   if(weiOption){obslogL = obslogL.array()*wei.array();}
   
   for (int j=0;j<J;j++){
@@ -174,10 +203,18 @@ double evalDeviance(const TX & X, const VectorXd & z, const double pi, const Vec
   int p = int(X.cols())+1;
   int nl = z.sum();
   int nu = N-nl;
+  double wnl, wnu;
   
-  const double c = std::log(nl/(pi*nu));
+  if(weiOption){
+    wnl = (wei.array()*z.array()).sum();
+    wnu = N-wnl;
+  }else{
+    wnl = nl;
+    wnu = nu;
+  }
+  
+  const double c0 = std::log(wnl/(pi*wnu));
   VectorXd lpred(N);
-  lpred.setZero();
   lpred.setConstant(coef(0));
   
   for (int j=1; j<p; ++j)
@@ -187,9 +224,10 @@ double evalDeviance(const TX & X, const VectorXd & z, const double pi, const Vec
   
   VectorXd pred, logExpLpred, logExpPred,obslogL;
   logExpLpred = (lpred.array().exp().array()+1).array().log();
-  pred = c+lpred.array()-logExpLpred.array();
+  pred = c0+lpred.array()-logExpLpred.array();
   logExpPred = (1+pred.array().exp()).array().log();
   obslogL = (z.array()*pred.array()-logExpPred.array());
+  
   if(weiOption){
     VectorXd nwei(wei);
     nwei =(N*wei)/wei.sum();
@@ -197,21 +235,27 @@ double evalDeviance(const TX & X, const VectorXd & z, const double pi, const Vec
   
   return -2*obslogL.sum();
 }
+
 template <class TX>
 VectorXd LUfit<TX>::evalObjectiveGrad(const VectorXd & lpred)
 {
-  const double c = std::log(nl/(pi*nu));
+  
   VectorXd objGrad(p); objGrad.setZero();
   VectorXd pred, gradpred, logExpLpred, logExpPred,obslogL;
+  
   logExpLpred = (lpred.array().exp().array()+1).array().log();
-  pred = c+lpred.array()-logExpLpred.array(); //log(nl/pi*nu)+bxi -log(1+exp(bxi))
+  pred = c0+lpred.array()-logExpLpred.array(); //c0+h -log(1+exp(h))
   VectorXd exponent1,exponent2,probz,prob1y,gradCoef;
   exponent1 = (-pred).array().exp();
+  
   probz=1/(1+exponent1.array()); // 1/(1+exp(-f(b))
   exponent2 = lpred.array().exp();
   prob1y = 1/(1+exponent2.array());//1/(1+exp(bxi))
+  
+  // gradient coefficient
   gradCoef=(y-probz).array()*prob1y.array();
   if(weiOption){gradCoef = gradCoef.array()*wei.array();}
+  
   MatrixXd Xcentered_j, Qj;
   MatrixXd Xdl;
   
@@ -262,20 +306,21 @@ void LUfit<TX>::LUfit_main()
   bool convergedQ(false);
   VectorXd objGrad(p),KKTvec(p);
   if(trace>=1){
-    betaMat.resize(p,(maxit+1)); betaMat.setZero();
+    betaMat.resize(p,(max_nUpdates+1)); betaMat.setZero();
   }
   
   for (int k=0;k<K;++k)
   {
     if(verbose){Rcpp::Rcout<<"Fitting "<<k<<"th lambda\n";}
-    Rcpp::checkUserInterrupt();
     iter    = 0;
     nUpdate = 0;
     qlambda_k = lambda_b(k, pen);
     lambda_k = qlambda_k*t;
     converged_lam = false;
     
-    while(nUpdate<maxit&&!converged_lam){
+    while(nUpdate<max_nUpdates&&!converged_lam){
+      
+      Rcpp::checkUserInterrupt();
       switch(trace){
       case 1:
         betaMat.col(nUpdate) = beta; break;
@@ -287,16 +332,23 @@ void LUfit<TX>::LUfit_main()
       default:
         break;
       }
+      coordinateDescent_0(resid);
+      convergedQ = quadraticBCD(resid, qlambda_k,inner_tol);
+      if(!convergedQ){
+        std::string s;
+        s = "convergence failed at "+std::to_string(nUpdate)+" updates, at "+std::to_string(k)+"th lambda: "+std::to_string(maxit)+
+          " iterations";
+        Rcpp::warning(s);
+        //                std::cout<<s<<std::endl;
+        break;
+      }
       
-      convergedQ= quadraticBCD(resid, qlambda_k,inner_tol);
       diff = beta-beta_old;
       error = diff.cwiseAbs().maxCoeff();
       
-      converged_lam = convergedQ&&(error<tol);
+      converged_lam = error<tol;
       
-      //Majorization at current beta
-      //VectorXd lpred = linpred(beta);
-      
+      // Quadratic Majorization at the current beta
       VectorXd lpred = linpred_update(resid,resid_old,lpred_old);
       //If intercept only model, this is an analytical solution
       if(!beta.segment(1,(p-1)).any())
@@ -307,15 +359,10 @@ void LUfit<TX>::LUfit_main()
         lpred = linpred(beta);
       }
       
-      converged_lam = convergedQ&&(error<tol);
       lpred_old = lpred;
-      if(!converged_lam){
-        // lpred_old = lpred;
-        updateObjFunc(lpred);
-        
-        if(k!=0){setupinactiveSets(k,resid,default_lambdaseq[0],lambdaseq, useStrongSet);};
-        beta_old = beta;
-      }
+      beta_old = beta;
+      updateObjFunc(lpred); //update mu, lresp, resid at new beta
+      if(k!=0){setupinactiveSets(k,resid,default_lambdaseq[0],lambdaseq, useStrongSet);};
       nUpdate++;
     }
     
@@ -354,7 +401,6 @@ void LUfit<TX>::LUfit_main()
       betaMat.col(nUpdate) = beta; break;
     case 2:
       fVals_all(nUpdate,k)= evalObjective(lpred_old,beta,lambda_k);
-      
       break;
     case 3:
       betaMat.col(nUpdate) = beta;
@@ -365,14 +411,8 @@ void LUfit<TX>::LUfit_main()
     if(trace>=1){
       beta_all.block(k*p,0,p,(nUpdate+1))=betaMat.block(0,0,p,(nUpdate+1));
     }
-    //        cout<<"fval:"<<evalObjective(lpred_old, beta)<<endl;
-    //        cout<<"objGrad:\n"<<objGrad<<endl;
-    //        cout<<"lambda:"<<lambdaseq(k)<<endl;
-    //        cout<<"|objGrad|<ambda:\n"<<KKTvec<<endl;
-    if(verbose&&converged_lam)
-      {Rcpp::Rcout<<"converged at "<<nUpdate<<"th iterations\n";}
-      if(!converged_lam){convFlag(k)=1;}
-      
+    if(verbose&&converged_lam){Rcpp::Rcout<<"converged at "<<nUpdate<<"th iterations\n";}
+    if(!converged_lam){convFlag(k)=1;}
   }
 }
 

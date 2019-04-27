@@ -61,13 +61,17 @@ protected:
   VectorXd lresp;//latent response
   double pi;
   int nUpdate;
+  int max_nUpdates;
   double inner_tol;
   bool useStrongSet;
   
   //
   int nl;
   int nu;
+  double wnl;
+  double wnu;
   double bias;
+  double c0;
   ArrayXi nUpdates;
   
   VectorXd lpred_old;
@@ -96,7 +100,7 @@ protected:
 public:
   LUfit(TX & X_, VectorXd & z_, VectorXd & icoef_, ArrayXd & gsize_,ArrayXd & pen_,
         ArrayXd & lambdaseq_, bool isUserLambdaseq_,int pathLength_,double lambdaMinRatio_,
-        double pi_, int maxit_, VectorXd & wei_, bool weiOption_,
+        double pi_, int max_nUpdates_, int maxit_, VectorXd & wei_, bool weiOption_,
         double tol_, double inner_tol_,bool useStrongSet_,bool verbose_, int trace_);
   
   void LUfit_main();

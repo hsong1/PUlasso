@@ -110,9 +110,9 @@ cv.grpPUlasso <-function(X,z,py1,initial_coef=NULL,group=1:p,
               .multicombine = TRUE)  %dopar%
               {
                 k = fitInd[l]
-                train_X = X[folds!=l,,drop=F]
-                train_z = z[folds!=l]
-                train_weights = weights[folds!=l]
+                train_X = X[folds!=k,,drop=F]
+                train_z = z[folds!=k]
+                train_weights = weights[folds!=k]
                 
                 fit_cv = grpPUlasso(X = train_X,z = train_z,py1 = py1,initial_coef = initial_coef,
                                      group = group,penalty = penalty,lambda = lambdaseq,
@@ -132,9 +132,9 @@ cv.grpPUlasso <-function(X,z,py1,initial_coef=NULL,group=1:p,
                     .combine  = "cbind" )%dopar%
                     {
                       k = fitInd[l]
-                      test_X = X[folds==l,,drop=F]
-                      test_z = z[folds==l]
-                      test_weights = weights[folds==l]
+                      test_X = X[folds==k,,drop=F]
+                      test_z = z[folds==k]
+                      test_weights = weights[folds==k]
                       
                       cvdev<- deviances(X = test_X,z = test_z,
                                         py1 = pi,coefMat = g[[l]]$coef,
@@ -150,13 +150,13 @@ cv.grpPUlasso <-function(X,z,py1,initial_coef=NULL,group=1:p,
       k = fitInd[l]
       if(verbose){cat('Cross-Validation for dataset',k,'\n')}
       
-      train_X = X[folds!=l,,drop=F]
-      train_z = z[folds!=l]
-      train_weights = weights[folds!=l]
+      train_X = X[folds!=k,,drop=F]
+      train_z = z[folds!=k]
+      train_weights = weights[folds!=k]
       
-      test_X = X[folds==l,,drop=F]
-      test_z = z[folds==l]
-      test_weights = weights[folds==l]
+      test_X = X[folds==k,,drop=F]
+      test_z = z[folds==k]
+      test_weights = weights[folds==k]
 
       g[[l]] = grpPUlasso(X = train_X,z = train_z,py1 = py1,initial_coef = initial_coef,
                            group = group,penalty = penalty,lambda = lambdaseq,
