@@ -39,7 +39,7 @@ deviances <-function(X,z,py1,coefMat,weights = NULL)
   } else if (inherits(X_lu,"dgeMatrix")){
     X_lu = as.matrix(X_lu)
   }
-  if(!(class(X_lu)=="matrix"||class(X_lu)=="dgCMatrix")){stop("X must be a matrix, or a sparse matrix")}
+  if(!(inherits(X_lu,"matrix") || inherits(X_lu, "dgCMatrix") )) {stop("X must be a matrix, or a sparse matrix")}
   if(typeof(coefMat)=="double"){coefMat <- as.matrix(coefMat)}
   if(nrow(coefMat)!=(ncol(X_lu)+1)){stop("nrow(coefMat) must be the same as p+1")}
   

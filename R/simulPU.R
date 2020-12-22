@@ -7,5 +7,6 @@
 #' Responses \eqn{y_i} is simulated via \eqn{P_\theta(y=1|x) = 1/exp(-\theta^Tx)}.
 #' 1000 observations are sampled from the sub-population of positives(y=1) and labeled, and another 1000 observations are sampled from the original population and unlabeled.
 #'
+#' @usage data('simulPU')
 #' @format A list containing model matrix X, true response y, labeled/unlabeled response vector z, and a true positive probability truePY1. 
 "simulPU"

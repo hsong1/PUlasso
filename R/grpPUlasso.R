@@ -93,8 +93,7 @@ grpPUlasso <- function(X,
   } else if (inherits(X_lu, "dgeMatrix")) {
     X_lu = as.matrix(X_lu)
   }
-  if (!(class(X_lu) == "matrix" ||
-        class(X_lu) == "dgCMatrix")) {
+  if (!(inherits(X_lu,"matrix") || inherits(X_lu, "dgCMatrix") )) {
     stop("X must be a matrix or a sparse matrix")
   }
   if (typeof(X_lu) != "double") {

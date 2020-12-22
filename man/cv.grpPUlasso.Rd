@@ -4,15 +4,32 @@
 \alias{cv.grpPUlasso}
 \title{Cross-validation for PUlasso}
 \usage{
-cv.grpPUlasso(X, z, py1, initial_coef = NULL, group = 1:p,
-  penalty = NULL, lambda = NULL, nlambda = 100,
-  lambdaMinRatio = ifelse(N < p, 0.05, 0.005), maxit = ifelse(method ==
-  "CD", 1000, N * 10), weights = NULL, eps = 1e-04, inner_eps = 0.01,
-  verbose = FALSE, stepSize = NULL, stepSizeAdjustment = NULL,
-  batchSize = 1, updateFrequency = N, samplingProbabilities = NULL,
-  method = c("CD", "GD", "SGD", "SVRG", "SAG"), nfolds = 10,
-  fitInd = 1:nfolds, nCores = 1, trace = c("none", "param", "fVal",
-  "all"))
+cv.grpPUlasso(
+  X,
+  z,
+  py1,
+  initial_coef = NULL,
+  group = 1:p,
+  penalty = NULL,
+  lambda = NULL,
+  nlambda = 100,
+  lambdaMinRatio = ifelse(N < p, 0.05, 0.005),
+  maxit = ifelse(method == "CD", 1000, N * 10),
+  weights = NULL,
+  eps = 1e-04,
+  inner_eps = 0.01,
+  verbose = FALSE,
+  stepSize = NULL,
+  stepSizeAdjustment = NULL,
+  batchSize = 1,
+  updateFrequency = N,
+  samplingProbabilities = NULL,
+  method = c("CD", "GD", "SGD", "SVRG", "SAG"),
+  nfolds = 10,
+  fitInd = 1:nfolds,
+  nCores = 1,
+  trace = c("none", "param", "fVal", "all")
+)
 }
 \arguments{
 \item{X}{Input matrix; each row is an observation. Can be a matrix or a sparse matrix.}

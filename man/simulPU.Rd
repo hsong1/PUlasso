@@ -4,9 +4,11 @@
 \name{simulPU}
 \alias{simulPU}
 \title{simulated PU data}
-\format{A list containing model matrix X, true response y, labeled/unlabeled response vector z, and a true positive probability truePY1.}
+\format{
+A list containing model matrix X, true response y, labeled/unlabeled response vector z, and a true positive probability truePY1.
+}
 \usage{
-simulPU
+data('simulPU')
 }
 \description{
 A simulated data for the illustration. 
