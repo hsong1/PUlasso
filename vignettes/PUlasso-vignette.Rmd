@@ -21,7 +21,7 @@ PUlasso is an algorithm for parameter estimation and classification using Positi
 \begin{equation}\label{objFunc}
 \underset{\theta}{\operatorname{argmin}} -\log L(\theta;x,z) + P_\lambda(\theta)
 \end{equation}
-where $\log L(\theta;x,z)$ is an observed log-likelihood based on covariates and labels $(x,z)$, and $P_\lambda(\theta)$ is $\ell_1$ or $\ell_1/\ell_2$ penalty. For more detailed discussion, please see our paper [https://arxiv.org/abs/1711.08129](PUlasso)
+where $\log L(\theta;x,z)$ is an observed log-likelihood based on covariates and labels $(x,z)$, and $P_\lambda(\theta)$ is $\ell_1$ or $\ell_1/\ell_2$ penalty. For more detailed discussion, please see our paper https://arxiv.org/abs/1711.08129
 
 # Basic usage of __PUlasso__ package
 
