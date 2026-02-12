@@ -1,8 +1,9 @@
-## Resubmission
-This is a resubmission.
+## Submission status
+This is a new submission. Package was previously archived on CRAN (2/10/2026), as I previously did not update the package after R was moved to the newest version.
+
 
 ## Test environments
-* local OS X install, R 4.0.3
+* local OS X install, R 4.4.3
 * win-builder 
 
 ## R CMD check results

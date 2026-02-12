@@ -2,9 +2,12 @@
 .Rhistory
 .RData
 .Ruserdata
-inst/doc
 .DS_Store
 src/*.o
 src/*.so
 src/*.dll
 .Rbuildignore
+/doc/
+/Meta/
+docs
+inst/doc

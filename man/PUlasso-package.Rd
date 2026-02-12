@@ -31,7 +31,6 @@ Useful links:
 \author{
 Hyebin Song, \email{hsong@stat.wisc.edu}, Garvesh Raskutti, \email{raskutti@stat.wisc.edu}.
 }
-\keyword{Group}
+\keyword{GroupLasso}
 \keyword{Lasso}
-\keyword{Lasso,}
-\keyword{PUlearning,}
+\keyword{PUlearning}

@@ -6,6 +6,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // LU_dense_cpp
 Rcpp::List LU_dense_cpp(Eigen::Map<Eigen::MatrixXd> X_, Eigen::VectorXd& z_, Eigen::VectorXd& icoef_, Eigen::ArrayXd& gsize_, Eigen::ArrayXd& pen_, Eigen::ArrayXd& lambdaseq_, bool user_lambdaseq_, int pathLength_, double lambdaMinRatio_, double pi_, int max_nUpdates_, int maxit_, Eigen::VectorXd& wei_, bool weiOption_, double tol_, double inner_tol_, bool useStrongSet_, bool verbose_, double stepSize_, double stepSizeAdj_, int batchSize_, int updateFreq_, std::vector<double> samplingProbabilities_, bool useLipschitz_, std::string method_, int trace_, bool skipFitting_);
 RcppExport SEXP _PUlasso_LU_dense_cpp(SEXP X_SEXP, SEXP z_SEXP, SEXP icoef_SEXP, SEXP gsize_SEXP, SEXP pen_SEXP, SEXP lambdaseq_SEXP, SEXP user_lambdaseq_SEXP, SEXP pathLength_SEXP, SEXP lambdaMinRatio_SEXP, SEXP pi_SEXP, SEXP max_nUpdates_SEXP, SEXP maxit_SEXP, SEXP wei_SEXP, SEXP weiOption_SEXP, SEXP tol_SEXP, SEXP inner_tol_SEXP, SEXP useStrongSet_SEXP, SEXP verbose_SEXP, SEXP stepSize_SEXP, SEXP stepSizeAdj_SEXP, SEXP batchSize_SEXP, SEXP updateFreq_SEXP, SEXP samplingProbabilities_SEXP, SEXP useLipschitz_SEXP, SEXP method_SEXP, SEXP trace_SEXP, SEXP skipFitting_SEXP) {

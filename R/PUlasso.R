@@ -3,7 +3,7 @@
 #' @details
 #' Main functions: grpPUlasso, cv.grpPUlasso, coef, predict
 #' @author Hyebin Song, \email{hsong@@stat.wisc.edu}, Garvesh Raskutti, \email{raskutti@@stat.wisc.edu}.
-#' @keywords PUlearning, Lasso, Group Lasso
+#' @keywords PUlearning Lasso GroupLasso
 #' @examples
 #' data("simulPU")
 #' fit<-grpPUlasso(X=simulPU$X,z=simulPU$z,py1=simulPU$truePY1)
